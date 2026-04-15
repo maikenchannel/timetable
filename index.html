@@ -1067,6 +1067,16 @@ main {
   text-decoration: underline;
   padding: 0;
 }
+.login-id-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 0.1rem;
+}
+.login-id-hint strong {
+  color: var(--accent);
+  font-weight: 600;
+}
 /* ログアウトボタン */
 #btn-logout {
   font-size: 0.75rem;
@@ -1120,8 +1130,9 @@ main {
     <div class="login-field">
       <label class="login-label" for="inp-id">学籍番号</label>
       <input class="login-input" id="inp-id" type="text"
-        placeholder="例: 24A1234" autocomplete="username"
+        placeholder="00X0000" autocomplete="username"
         onkeydown="if(event.key==='Enter')document.getElementById('inp-pw').focus()">
+      <span class="login-id-hint">※ 書式: 数字2桁＋<strong>大文字アルファベット</strong>1文字＋数字4桁（例: 24A1234）</span>
     </div>
     <div class="login-field">
       <label class="login-label" for="inp-pw">パスワード</label>
@@ -2429,9 +2440,9 @@ async function loginSubmit() {
   if (!id) { err.textContent = '学籍番号を入力してください'; return; }
   if (!pw)  { err.textContent = 'パスワードを入力してください'; return; }
 
-  // 学籍番号の簡易バリデーション（英数字のみ）
-  if (!/^[A-Za-z0-9]+$/.test(id)) {
-    err.textContent = '学籍番号は英数字のみで入力してください';
+  // 学籍番号の書式バリデーション: 数字2桁 + 大文字アルファベット1文字 + 数字4桁
+  if (!/^[0-9]{2}[A-Z]{1}[0-9]{4}$/.test(id)) {
+    err.textContent = '学籍番号の書式が正しくありません（例: 24A1234）。アルファベットは大文字で入力してください';
     return;
   }
 
