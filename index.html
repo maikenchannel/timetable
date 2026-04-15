@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="dark">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -784,6 +784,26 @@ main {
 }
 .fm-err small { font-family: 'DM Mono', monospace; font-size: 11px; }
 
+/* ── WEEK VIEW extras ── */
+.timetable thead th.col-day { min-width: 110px; }
+.timetable thead th.today-hdr { color: var(--accent); background: rgba(124,106,247,0.06); }
+.timetable tbody td.today-col { background: rgba(124,106,247,0.03); }
+[data-theme="light"] .timetable tbody td.today-col { background: rgba(124,106,247,0.04); }
+.hdr-day-en {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+  margin-top: 2px;
+}
+
+/* モバイルでは週表示時に列を少し狭く */
+@media (max-width: 767px) {
+  .timetable thead th.col-day { min-width: 80px; }
+  :root { --row-height: 72px; --time-col: 56px; }
+}
+
 /* ── TOAST / MISC ── */
 #toast {
   position:fixed; bottom:28px; left:50%;
@@ -809,6 +829,7 @@ main {
   <div class="logo">CAMPUS <span>時間割</span></div>
   <div class="header-right">
     <button class="btn btn-ghost" id="btn-list"   style="display:none" onclick="toggleList()">📋 一覧</button>
+    <button class="btn btn-ghost" id="btn-view"   style="display:none" onclick="toggleView()">📅 週表示</button>
     <button class="btn btn-ghost" id="btn-reload" style="display:none" onclick="reloadData()">🔄 更新</button>
     <button class="btn btn-danger" id="btn-clear" style="display:none" onclick="clearAll()">✕ クリア</button>
     <div class="hdr-sep"></div>
@@ -1061,8 +1082,9 @@ function toggleTheme() {
   localStorage.setItem('campus-theme', next);
 }
 (function() {
-  const s = localStorage.getItem('campus-theme');
-  if (s) document.documentElement.dataset.theme = s;
+  // デフォルト: light。localStorage に保存済みならそちらを優先
+  const s = localStorage.getItem('campus-theme') || 'light';
+  document.documentElement.dataset.theme = s;
 })();
 
 /* ─────────────────────────────────────────────
@@ -1639,6 +1661,7 @@ function renderAll() {
   if (listOpen) document.getElementById('course-list-wrap').style.display = 'block';
 
   document.getElementById('btn-list').style.display    = 'inline-flex';
+  document.getElementById('btn-view').style.display    = 'inline-flex';
   document.getElementById('btn-reload').style.display  = 'inline-flex';
   document.getElementById('btn-reload2').style.display = 'inline-flex';
   document.getElementById('btn-clear').style.display   = 'inline-flex';
@@ -1647,23 +1670,144 @@ function renderAll() {
 }
 
 /* ─────────────────────────────────────────────
-   RENDER TIMETABLE  ── today only ──
+   VIEW MODE  (week / day)
+   デスクトップデフォルト: week
+   モバイルデフォルト: day
+   localStorage で上書き保存可能
+───────────────────────────────────────────── */
+const MOBILE_BP = 768; // px
+
+function isMobile() { return window.innerWidth < MOBILE_BP; }
+
+// Returns effective view: 'week' | 'day'
+// Priority: localStorage override → device default
+function getView() {
+  const saved = localStorage.getItem('campus-view');
+  if (saved === 'week' || saved === 'day') return saved;
+  return isMobile() ? 'day' : 'week';
+}
+
+function toggleView() {
+  const current = getView();
+  const next    = current === 'week' ? 'day' : 'week';
+  localStorage.setItem('campus-view', next);
+  renderTimetable();
+  updateViewBtn();
+}
+
+function updateViewBtn() {
+  const btn = document.getElementById('btn-view');
+  if (!btn) return;
+  btn.textContent = getView() === 'week' ? '📅 日表示' : '📅 週表示';
+}
+
+/* ─────────────────────────────────────────────
+   RENDER TIMETABLE  ── week or day ──
 ───────────────────────────────────────────── */
 function renderTimetable() {
-  const today = todayKey();
+  const view    = getView();
+  const today   = todayKey();
   const noToday = document.getElementById('no-today');
   const tbl     = document.getElementById('timetable');
 
-  // Collect today's courses
+  updateViewBtn();
+
+  if (view === 'week') {
+    renderWeek(tbl, noToday, today);
+  } else {
+    renderDay(tbl, noToday, today);
+  }
+}
+
+/* ── 週間表示 ── */
+function renderWeek(tbl, noToday, today) {
+  // All days that have at least one course
+  const usedDays = DAYS.filter(d => courses.some(c => c.slots.some(s => s.day === d)));
+  const days = usedDays.length ? usedDays : DAYS.slice(0, 5);
+
+  // Build grid: day → period → courses[]
+  const grid = {};
+  days.forEach(d => { grid[d] = {}; PERIODS.forEach(p => { grid[d][p] = []; }); });
+  courses.forEach(c => c.slots.forEach(s => {
+    if (grid[s.day] && grid[s.day][s.period] !== undefined) grid[s.day][s.period].push(c);
+  }));
+
+  tbl.style.display = '';
+  noToday.style.display = 'none';
+
+  const nm = nowMin();
+  tbl.innerHTML = '';
+
+  // ── thead ──
+  const thead = document.createElement('thead');
+  const hrow  = document.createElement('tr');
+  const th0   = document.createElement('th');
+  th0.className = 'col-time';
+  th0.textContent = '時限';
+  hrow.appendChild(th0);
+  days.forEach(d => {
+    const th = document.createElement('th');
+    th.className = 'col-day' + (d === today ? ' today-hdr' : '');
+    th.innerHTML = `${DAY_JA[d]}<span class="hdr-day-en">${d}</span>`;
+    hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  tbl.appendChild(thead);
+
+  // ── tbody ──
+  const tbody = document.createElement('tbody');
+  PERIODS.forEach(p => {
+    const tr  = document.createElement('tr');
+    tr.dataset.period = p;
+
+    // time cell
+    const ps    = PERIOD_START_MIN[p];
+    const pe    = periodEndMin(p);
+    const isNow = nm >= ps && nm <= pe;
+    const isBrk = isBreak(p) && nm > pe && nm < (PERIOD_START_MIN[p+1] || Infinity);
+
+    const td0 = document.createElement('td');
+    td0.className = 'col-time' + (isNow ? ' is-now' : isBrk ? ' is-break' : '');
+    td0.dataset.timecell = p;
+    td0.innerHTML = `
+      <div class="time-label">
+        <span class="time-num${isNow ? ' active-num' : ''}">${p}</span>
+        <span class="time-start">${periodStartStr(p)}</span>
+        <span class="time-end">${periodEndStr(p)}</span>
+      </div>`;
+    tr.appendChild(td0);
+
+    days.forEach(d => {
+      const td = document.createElement('td');
+      td.className = 'col-day' + (d === today ? ' today-col' : '');
+      const cs = grid[d][p];
+      if (cs.length > 1) {
+        const wrap = document.createElement('div');
+        wrap.className = 'cell-multi';
+        cs.forEach(c => wrap.appendChild(makeCard(c, isNow && d === today)));
+        td.appendChild(wrap);
+      } else if (cs.length === 1) {
+        td.appendChild(makeCard(cs[0], isNow && d === today));
+      }
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+/* ── 日間表示 ── */
+function renderDay(tbl, noToday, today) {
   const todayCourses = today
-    ? courses.filter(c => c.slots.some(s => s.day===today))
+    ? courses.filter(c => c.slots.some(s => s.day === today))
     : [];
 
   if (!today || !todayCourses.length) {
     tbl.style.display = 'none';
     noToday.style.display = 'block';
     document.getElementById('no-today-day').textContent =
-      today ? DAY_JA[today]+'曜日' : '本日（土日）';
+      today ? DAY_JA[today] + '曜日' : '本日（土日）';
     document.getElementById('next-banner').style.display = 'none';
     return;
   }
@@ -1671,11 +1815,10 @@ function renderTimetable() {
   tbl.style.display = '';
   noToday.style.display = 'none';
 
-  // Build grid: period → courses
   const grid = {};
   PERIODS.forEach(p => { grid[p] = []; });
   todayCourses.forEach(c => {
-    c.slots.filter(s=>s.day===today).forEach(s => {
+    c.slots.filter(s => s.day === today).forEach(s => {
       if (grid[s.period] !== undefined) grid[s.period].push(c);
     });
   });
@@ -1687,50 +1830,41 @@ function renderTimetable() {
   const thead = document.createElement('thead');
   const hrow  = document.createElement('tr');
   const th0   = document.createElement('th');
-  th0.className   = 'col-time';
+  th0.className = 'col-time';
   th0.textContent = '時限';
   hrow.appendChild(th0);
-
   const th1 = document.createElement('th');
-  th1.className   = 'col-day today-hdr';
+  th1.className = 'col-day today-hdr';
   th1.textContent = `${DAY_JA[today]}曜日`;
   hrow.appendChild(th1);
-
   thead.appendChild(hrow);
   tbl.appendChild(thead);
 
   // ── tbody ──
   const tbody = document.createElement('tbody');
   PERIODS.forEach(p => {
-    // Skip periods with no course AND that are in the past
-    // (still show current and future empty slots for context)
-    const cs   = grid[p];
-    const ps   = PERIOD_START_MIN[p];
-    const pe   = periodEndMin(p);
-    const isNow   = nm >= ps && nm <= pe;
-    const isBrk   = isBreak(p) && nm > pe && nm < (PERIOD_START_MIN[p+1]||Infinity);
-    const isPast  = nm > pe && !isNow;
-
-    // Always show periods that have a course; skip empty past periods
+    const cs  = grid[p];
+    const ps  = PERIOD_START_MIN[p];
+    const pe  = periodEndMin(p);
+    const isNow = nm >= ps && nm <= pe;
+    const isBrk = isBreak(p) && nm > pe && nm < (PERIOD_START_MIN[p + 1] || Infinity);
+    const isPast = nm > pe && !isNow;
     if (cs.length === 0 && isPast) return;
 
     const tr = document.createElement('tr');
     tr.dataset.period = p;
 
-    // time cell
     const td0 = document.createElement('td');
     td0.className = 'col-time' + (isNow ? ' is-now' : isBrk ? ' is-break' : '');
     td0.dataset.timecell = p;
-    const numCls = isNow ? ' active-num' : '';
     td0.innerHTML = `
       <div class="time-label">
-        <span class="time-num${numCls}">${p}</span>
+        <span class="time-num${isNow ? ' active-num' : ''}">${p}</span>
         <span class="time-start">${periodStartStr(p)}</span>
         <span class="time-end">${periodEndStr(p)}</span>
       </div>`;
     tr.appendChild(td0);
 
-    // course cell
     const td1 = document.createElement('td');
     td1.className = 'col-day';
     if (cs.length > 1) {
@@ -1892,7 +2026,7 @@ function clearAll() {
   document.getElementById('course-list-wrap').style.display = 'none';
   document.getElementById('stats-bar').style.display        = 'none';
   document.getElementById('next-banner').style.display      = 'none';
-  ['btn-list','btn-reload','btn-reload2','btn-clear'].forEach(id =>
+  ['btn-list','btn-view','btn-reload','btn-reload2','btn-clear'].forEach(id =>
     document.getElementById(id).style.display = 'none');
   document.getElementById('btn-list').textContent = '📋 一覧';
 }
@@ -1910,6 +2044,18 @@ function esc(s) {
 
 document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeFloorMap(); } });
 window.addEventListener('DOMContentLoaded', () => { loadTimeXlsx(); _initTestMode(); });
+
+// ウィンドウサイズ変更時: localStorage override がなければデバイスデフォルトに追従
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    if (!localStorage.getItem('campus-view') && courses.length) {
+      renderTimetable();
+    }
+  }, 200);
+});
 </script>
 </body>
 </html>
+
