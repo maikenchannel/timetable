@@ -852,9 +852,10 @@ main {
 
 /* ── WEEK VIEW extras ── */
 .timetable thead th.col-day { min-width: 6.875rem; }
-.timetable thead th.today-hdr { color: var(--accent); background: rgba(124,106,247,0.06); }
-.timetable tbody td.today-col { background: rgba(124,106,247,0.03); }
-[data-theme="light"] .timetable tbody td.today-col { background: rgba(124,106,247,0.04); }
+.timetable thead th.today-hdr { color: var(--accent); background: rgba(124,106,247,0.13); }
+.timetable tbody td.today-col { background: rgba(124,106,247,0.07); }
+[data-theme="light"] .timetable thead th.today-hdr { background: rgba(124,106,247,0.12); }
+[data-theme="light"] .timetable tbody td.today-col { background: rgba(124,106,247,0.07); }
 .hdr-day-en {
   display: block;
   font-family: 'DM Mono', monospace;
@@ -1553,11 +1554,6 @@ main {
       <span class="lbl">本日の科目</span>
       <span class="val" id="stat-today-n">0</span>
     </div>
-    <div class="stat-chip">
-      <span class="lbl">合計単位</span>
-      <span class="val" id="stat-cr">0</span>
-      <span class="unit">単位</span>
-    </div>
     <div class="stat-chip" id="stat-err-chip" style="display:none">
       <span class="lbl">⚠️ エラー</span>
       <span class="val" id="stat-err">0</span>
@@ -2093,7 +2089,20 @@ function isCancelled(date, period) {
   return !!getCancels()[cancelKey(date, period)];
 }
 
-// 今日の日付文字列 YYYY-MM-DD
+// 曜日キー（'Mon'等）からその週の実際の日付文字列 YYYY-MM-DD を返す
+// テストモード中は実日付基準
+function dateStrForDay(dayKey) {
+  const DAY_INDEX = { Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  const today = new Date();
+  const todayDow = today.getDay(); // 0=Sun
+  const targetDow = DAY_INDEX[dayKey] ?? 1;
+  const diff = targetDow - todayDow;
+  const target = new Date(today);
+  target.setDate(today.getDate() + diff);
+  return `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(target.getDate()).padStart(2,'0')}`;
+}
+
+// 今日の日付文字列
 function todayStr() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
@@ -2241,8 +2250,13 @@ function renderAssignments() {
   const all  = getAssignments();        // グローバル課題リスト
   const done = getDoneSet();            // 個人完了セット
 
-  const active = all.filter(a => !done[a.id]);
-  const doneList = all.filter(a => !!done[a.id]);
+  // 自分が受講中の科目名セット
+  const myNames = new Set(getActiveCourses().map(c => c.name));
+
+  // 自分の受講科目に関連するものだけ
+  const myAll    = all.filter(a => myNames.has(a.course));
+  const active   = myAll.filter(a => !done[a.id]);
+  const doneList = myAll.filter(a => !!done[a.id]);
 
   // 提出済みボタン
   let doneBtn = document.getElementById('btn-show-done');
@@ -2257,7 +2271,7 @@ function renderAssignments() {
 
   if (!active.length) {
     list.innerHTML = '<div class="assign-empty">📭 未提出の課題はありません</div>';
-    wrap.style.display = all.length > 0 ? 'block' : 'none';
+    wrap.style.display = myAll.length > 0 ? 'block' : 'none';
     return;
   }
 
@@ -2289,7 +2303,8 @@ function renderAssignments() {
 function openDoneAssignModal() {
   const all  = getAssignments();
   const done = getDoneSet();
-  const doneList = all.filter(a => !!done[a.id]);
+  const myNames = new Set(getActiveCourses().map(c => c.name));
+  const doneList = all.filter(a => !!done[a.id] && myNames.has(a.course));
   const wrap = document.getElementById('done-assign-list');
   wrap.innerHTML = '';
   if (!doneList.length) {
@@ -2327,6 +2342,7 @@ function getOverrides() {
 function saveOverrides(obj) { localStorage.setItem(overrideKey(), JSON.stringify(obj)); }
 
 // 特定の day:period に対して表示する講義を解決する
+// デフォルト: 空きコマ（ユーザーが明示的にswitchを設定した場合のみ表示）
 function resolveDisplayCourse(day, period, candidates) {
   if (!candidates.length) return null;
   const ov = getOverrides()[`${day}:${period}`];
@@ -2337,7 +2353,7 @@ function resolveDisplayCourse(day, period, candidates) {
       if (found) return found;
     }
   }
-  return candidates[0]; // デフォルト: 最初のもの
+  return null; // デフォルト: 空きコマ
 }
 
 /* ─────────────────────────────────────────────
@@ -3004,7 +3020,6 @@ function renderAll() {
   // Stats
   document.getElementById('stat-today').textContent   = today ? DAY_JA[today]+'曜日' : '—';
   document.getElementById('stat-today-n').textContent = todayCourses.length;
-  document.getElementById('stat-cr').textContent      = courses.reduce((s,c)=>s+c.credits,0);
 
   const errChip = document.getElementById('stat-err-chip');
   errChip.style.display = errors.length ? 'flex' : 'none';
@@ -3274,11 +3289,8 @@ function makeCard(c, isActive, day, period, allCandidates) {
   const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
   const card = document.createElement('div');
 
-  // 今日の日付で休講チェック
-  const dateStr = (() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-  })();
+  // 対象曜日の実際の日付で休講チェック（週表示でも各曜日の日付を使う）
+  const dateStr  = day ? dateStrForDay(day) : todayStr();
   const cancelled = day && period && isCancelled(dateStr, String(period));
 
   const isWeek = getView() === 'week';
