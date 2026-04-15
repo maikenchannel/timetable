@@ -852,13 +852,9 @@ main {
   .logo span { display: none; }
   .header-right { gap: 0.375rem; }
   .hdr-sep { display: none; }
-  #btn-list, #btn-view { font-size: 0; padding: 0.5rem 0.625rem; gap: 0; }
-  #btn-list::before { content: '📋'; font-size: 1rem; }
+  #btn-view { font-size: 0; padding: 0.5rem 0.625rem; gap: 0; }
   #btn-view::before { content: '📅'; font-size: 1rem; }
   #btn-reload2 { display: none !important; }
-  .user-chip { font-size: 0.6875rem; padding: 0.3125rem 0.5rem; }
-  #btn-logout { font-size: 0.6875rem; padding: 0.3125rem 0.5rem; }
-  .theme-toggle { flex-shrink: 0; }
 
   /* Banner */
   #next-banner {
@@ -1113,6 +1109,127 @@ main {
 #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
 .spinner { display:inline-block; width:0.9375rem; height:0.9375rem; border:0.125rem solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
 @keyframes spin { to { transform:rotate(360deg); } }
+/* ═══════════════════════════════════════════════
+   HAMBURGER MENU
+═══════════════════════════════════════════════ */
+.hamburger-btn {
+  display: none; /* デスクトップでは非表示 */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3125rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.hamburger-btn:hover { border-color: var(--accent); }
+.hamburger-btn span {
+  display: block;
+  width: 1rem;
+  height: 0.125rem;
+  background: var(--text-dim);
+  border-radius: 0.125rem;
+  transition: background 0.15s;
+}
+.hamburger-btn.open span { background: var(--accent); }
+
+/* ドロップダウン本体 */
+.hamburger-menu {
+  display: none;
+  position: fixed;
+  top: calc(var(--header-h) + 0.5rem);
+  right: 0.75rem;
+  z-index: 500;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-card);
+  min-width: 13rem;
+  overflow: hidden;
+  animation: menuIn 0.18s cubic-bezier(0.34,1.4,0.64,1);
+  transition: background var(--t), border-color var(--t);
+}
+@keyframes menuIn {
+  from { opacity:0; transform:translateY(-0.5rem) scale(0.96); }
+  to   { opacity:1; transform:none; }
+}
+.hamburger-menu.open { display: block; }
+
+.hmenu-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem 0.75rem;
+}
+.hmenu-user-icon { font-size: 1rem; }
+.hmenu-user-id {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.hmenu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem 0;
+}
+
+.hmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.hmenu-item:hover { background: var(--surface2); }
+.hmenu-danger {
+  color: var(--danger);
+  opacity: 0.85;
+}
+.hmenu-danger:hover {
+  background: rgba(248,113,113,0.08);
+  opacity: 1;
+}
+
+/* バックドロップ */
+#hamburger-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 499;
+}
+#hamburger-backdrop.open { display: block; }
+
+/* デスクトップでは hamburger を隠す */
+@media (min-width: 30.0625rem) {
+  .hamburger-btn { display: none !important; }
+  #hamburger-menu, #hamburger-backdrop { display: none !important; }
+}
+
+/* モバイルでは desktop-only 要素を隠す (JS の display 操作より優先) */
+@media (max-width: 30rem) {
+  .hamburger-btn { display: flex; }
+  .desktop-only  { display: none !important; }
+  /* open クラスが付いたときは表示を許可 */
+  #hamburger-menu.open     { display: block !important; }
+  #hamburger-backdrop.open { display: block !important; }
+}
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
@@ -1157,19 +1274,51 @@ main {
 <header>
   <div class="logo">CAMPUS <span>時間割</span></div>
   <div class="header-right">
-    <button class="btn btn-ghost" id="btn-list"   style="display:none" onclick="toggleList()">📋 一覧</button>
     <button class="btn btn-ghost" id="btn-view"   style="display:none" onclick="toggleView()">📅 週表示</button>
-    <div class="hdr-sep" id="sep-user" style="display:none"></div>
-    <span class="user-chip" id="user-chip">👤 <span id="user-id-display"></span></span>
-    <button class="btn btn-ghost" id="btn-logout" style="display:none" onclick="doLogout()">ログアウト</button>
-    <div class="hdr-sep"></div>
-    <div class="theme-toggle" onclick="toggleTheme()" title="ライト/ダーク切替">
+    <!-- デスクトップ専用: ユーザーチップ・ログアウト・テーマ -->
+    <div class="hdr-sep desktop-only" id="sep-user" style="display:none"></div>
+    <span class="user-chip desktop-only" id="user-chip">👤 <span id="user-id-display"></span></span>
+    <button class="btn btn-ghost desktop-only" id="btn-logout" style="display:none" onclick="doLogout()">ログアウト</button>
+    <div class="hdr-sep desktop-only"></div>
+    <div class="theme-toggle desktop-only" onclick="toggleTheme()" title="ライト/ダーク切替">
       <span class="theme-icon icon-moon">🌙</span>
       <span class="theme-icon icon-sun">☀️</span>
     </div>
     <button class="btn btn-ghost" id="btn-reload2" style="display:none" onclick="loadTimeXlsx()" title="再読み込み">🔄</button>
+    <!-- ハンバーガーボタン (モバイル & デスクトップ共通だが主にモバイル向け) -->
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleHamburger()" aria-label="メニュー">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
+
+<!-- ハンバーガードロップダウンメニュー -->
+<div id="hamburger-menu" class="hamburger-menu">
+  <div class="hmenu-user" id="hmenu-user" style="display:none">
+    <span class="hmenu-user-icon">👤</span>
+    <span class="hmenu-user-id" id="hmenu-user-id"></span>
+  </div>
+  <div class="hmenu-divider" id="hmenu-div-user" style="display:none"></div>
+  <button class="hmenu-item" onclick="toggleTheme(); closeHamburger()">
+    <span id="hmenu-theme-icon">🌙</span> テーマ切替
+  </button>
+  <button class="hmenu-item" id="hmenu-logout" style="display:none" onclick="doLogout(); closeHamburger()">
+    🚪 ログアウト
+  </button>
+  <!-- 管理者専用 (26X2004) -->
+  <div class="hmenu-divider hmenu-admin-only" id="hmenu-div-admin" style="display:none"></div>
+  <button class="hmenu-item hmenu-admin-only" id="hmenu-cancel-class" style="display:none" onclick="openCancelClassModal(); closeHamburger()">
+    🚫 休講を設定
+  </button>
+  <button class="hmenu-item hmenu-admin-only" id="hmenu-add-assignment" style="display:none" onclick="openAssignmentModal(); closeHamburger()">
+    📝 課題を追加
+  </button>
+  <div class="hmenu-divider" id="hmenu-div-danger" style="display:none"></div>
+  <button class="hmenu-item hmenu-danger" id="hmenu-delete" style="display:none" onclick="confirmDeleteAccount()">
+    🗑 アカウント削除
+  </button>
+</div>
+<div id="hamburger-backdrop" onclick="closeHamburger()"></div>
 
 <!-- ═══ NEXT-CLASS BANNER ═══ -->
 <div id="next-banner">
@@ -1228,6 +1377,12 @@ main {
       <div class="big">🎉</div>
       本日（<span id="no-today-day"></span>）は授業がありません
     </div>
+  </div>
+
+  <!-- 課題一覧 -->
+  <div id="assignments-wrap" style="display:none; margin-top:1.25rem;">
+    <div class="sec-title">📝 課題一覧</div>
+    <div id="assignments-list"></div>
   </div>
 
   <!-- Course list (all) -->
@@ -1399,7 +1554,7 @@ const PALETTE = [
 let courses  = [];
 let colorMap = {};
 let errors   = [];
-let listOpen = false;
+let listOpen = true;
 let lastSrc  = '';
 let _bannerTimer = null;
 let _tickTimer   = null;
@@ -2012,9 +2167,8 @@ function renderAll() {
 
   document.getElementById('import-panel').style.display   = 'none';
   document.getElementById('timetable-wrap').style.display = 'block';
-  if (listOpen) document.getElementById('course-list-wrap').style.display = 'block';
+  document.getElementById('course-list-wrap').style.display = 'block';
 
-  document.getElementById('btn-list').style.display    = 'inline-flex';
   document.getElementById('btn-view').style.display    = 'inline-flex';
   document.getElementById('btn-reload2').style.display = 'inline-flex';
 
@@ -2367,10 +2521,47 @@ function overlayClick(e) { if (e.target.id==='modal-overlay') closeModal(); }
 /* ─────────────────────────────────────────────
    UI HELPERS
 ───────────────────────────────────────────── */
-function toggleList() {
-  listOpen = !listOpen;
-  document.getElementById('course-list-wrap').style.display = listOpen ? 'block' : 'none';
-  document.getElementById('btn-list').textContent = listOpen ? '📅 時間割' : '📋 一覧';
+/* ─────────────────────────────────────────────
+   HAMBURGER MENU
+───────────────────────────────────────────── */
+function toggleHamburger() {
+  const menu     = document.getElementById('hamburger-menu');
+  const backdrop = document.getElementById('hamburger-backdrop');
+  const btn      = document.getElementById('hamburger-btn');
+  const isOpen   = menu.classList.contains('open');
+  if (isOpen) {
+    menu.classList.remove('open');
+    backdrop.classList.remove('open');
+    btn.classList.remove('open');
+  } else {
+    // テーマアイコン同期
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const themeIcon = document.getElementById('hmenu-theme-icon');
+    if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+    menu.classList.add('open');
+    backdrop.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+function closeHamburger() {
+  document.getElementById('hamburger-menu').classList.remove('open');
+  document.getElementById('hamburger-backdrop').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+}
+
+function confirmDeleteAccount() {
+  const id = document.getElementById('hmenu-user-id').textContent;
+  if (!id) return;
+  if (!confirm(`アカウント「${id}」を削除しますか？\nこの操作は取り消せません。`)) return;
+  // アカウントデータ削除
+  const users = getUsers();
+  delete users[id];
+  saveUsers(users);
+  clearSession();
+  closeHamburger();
+  // ログアウトと同じUI処理
+  doLogout();
+  showToast('アカウントを削除しました');
 }
 let _toastTimer;
 function showToast(msg) {
@@ -2477,22 +2668,36 @@ function onLoginSuccess(id) {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('inp-pw').value = '';
   document.getElementById('login-err').textContent = '';
-  // ヘッダーにユーザー表示
+  // ヘッダーにユーザー表示 (デスクトップ)
   document.getElementById('user-id-display').textContent = id;
   document.getElementById('user-chip').style.display  = 'inline-flex';
   document.getElementById('btn-logout').style.display = 'inline-flex';
   document.getElementById('sep-user').style.display   = 'block';
+  // ハンバーガーメニューにユーザー情報をセット
+  document.getElementById('hmenu-user-id').textContent = id;
+  document.getElementById('hmenu-user').style.display     = 'flex';
+  document.getElementById('hmenu-div-user').style.display = 'block';
+  document.getElementById('hmenu-logout').style.display   = 'flex';
+  document.getElementById('hmenu-div-danger').style.display = 'block';
+  document.getElementById('hmenu-delete').style.display   = 'flex';
   // データ読み込み開始
   loadTimeXlsx();
 }
 
 function doLogout() {
   clearSession();
-  // UI リセット
+  closeHamburger();
+  // UI リセット (デスクトップ)
   document.getElementById('user-chip').style.display  = 'none';
   document.getElementById('btn-logout').style.display = 'none';
   document.getElementById('sep-user').style.display   = 'none';
-  document.getElementById('btn-list').style.display   = 'none';
+  // ハンバーガーメニューリセット
+  document.getElementById('hmenu-user').style.display      = 'none';
+  document.getElementById('hmenu-div-user').style.display  = 'none';
+  document.getElementById('hmenu-logout').style.display    = 'none';
+  document.getElementById('hmenu-div-danger').style.display= 'none';
+  document.getElementById('hmenu-delete').style.display    = 'none';
+  // コンテンツ非表示
   document.getElementById('btn-view').style.display   = 'none';
   document.getElementById('btn-reload2').style.display= 'none';
   document.getElementById('timetable-wrap').style.display   = 'none';
