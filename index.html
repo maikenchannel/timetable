@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>時間割 — Campus</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   THEME TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --accent:       #7c6af7;
+  --accent2:      #c084fc;
+  --accent3:      #38bdf8;
+  --danger:       #f87171;
+  --success:      #34d399;
+  --warning:      #fbbf24;
+  --row-height:   88px;
+  --time-col:     72px;
+  --header-h:     60px;
+  --banner-h:     0px;   /* set by JS */
+  --radius-card:  10px;
+  --radius-panel: 14px;
+  --t: 0.22s ease;
+}
+
+[data-theme="dark"] {
+  --bg:           #0d0d11;
+  --bg-mesh:      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(124,106,247,0.08) 0%, transparent 70%);
+  --surface:      #16161d;
+  --surface2:     #1e1e28;
+  --surface3:     #252533;
+  --border:       #28283a;
+  --border2:      #333348;
+  --text:         #e6e6f0;
+  --text-dim:     #9696b0;
+  --text-muted:   #60607a;
+  --header-bg:    rgba(13,13,17,0.90);
+  --shadow:       0 4px 24px rgba(0,0,0,0.45);
+  --shadow-card:  0 8px 28px rgba(0,0,0,0.5);
+  --toggle-bg:    #28283a;
+  --sun:          none;
+  --moon:         block;
+  /* next-class banner */
+  --banner-bg:    rgba(124,106,247,0.12);
+  --banner-border:rgba(124,106,247,0.35);
+  --banner-text:  #c4baff;
+  /* in-class banner */
+  --banner-now-bg:    rgba(52,211,153,0.10);
+  --banner-now-border:rgba(52,211,153,0.35);
+  --banner-now-text:  #6ee7b7;
+  /* break banner */
+  --banner-brk-bg:    rgba(251,191,36,0.10);
+  --banner-brk-border:rgba(251,191,36,0.35);
+  --banner-brk-text:  #fcd34d;
+  /* no-class banner */
+  --banner-off-bg:    rgba(99,99,120,0.10);
+  --banner-off-border:rgba(99,99,120,0.25);
+  --banner-off-text:  #9696b0;
+}
+
+[data-theme="light"] {
+  --bg:           #f2f2f7;
+  --bg-mesh:      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(124,106,247,0.05) 0%, transparent 70%);
+  --surface:      #ffffff;
+  --surface2:     #ededf3;
+  --surface3:     #e4e4ec;
+  --border:       #dcdce8;
+  --border2:      #c6c6d6;
+  --text:         #18181f;
+  --text-dim:     #50506a;
+  --text-muted:   #888899;
+  --header-bg:    rgba(242,242,247,0.92);
+  --shadow:       0 2px 12px rgba(0,0,0,0.08);
+  --shadow-card:  0 6px 20px rgba(0,0,0,0.12);
+  --toggle-bg:    #dcdce8;
+  --sun:          block;
+  --moon:         none;
+  --banner-bg:    rgba(124,106,247,0.07);
+  --banner-border:rgba(124,106,247,0.28);
+  --banner-text:  #5b47d4;
+  --banner-now-bg:    rgba(16,185,129,0.07);
+  --banner-now-border:rgba(16,185,129,0.28);
+  --banner-now-text:  #047857;
+  --banner-brk-bg:    rgba(217,119,6,0.07);
+  --banner-brk-border:rgba(217,119,6,0.28);
+  --banner-brk-text:  #92400e;
+  --banner-off-bg:    rgba(100,100,120,0.06);
+  --banner-off-border:rgba(100,100,120,0.18);
+  --banner-off-text:  #60607a;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  transition: background var(--t), color var(--t);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: var(--bg-mesh);
+  pointer-events: none; z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   NEXT-CLASS BANNER
+═══════════════════════════════════════════════ */
+#next-banner {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 150;
+  display: none;                     /* shown by JS after data loaded */
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  height: 52px;
+  border-bottom: 1px solid var(--banner-border);
+  background: var(--banner-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background var(--t), border-color var(--t), opacity 0.3s;
+  overflow: hidden;
+}
+#next-banner.mode-now  {
+  background: var(--banner-now-bg);
+  border-color: var(--banner-now-border);
+}
+#next-banner.mode-brk  {
+  background: var(--banner-brk-bg);
+  border-color: var(--banner-brk-border);
+}
+#next-banner.mode-off  {
+  background: var(--banner-off-bg);
+  border-color: var(--banner-off-border);
+}
+
+.banner-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 3px 9px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+#next-banner .banner-pill  { color: var(--banner-text); }
+#next-banner.mode-now .banner-pill { color: var(--banner-now-text); }
+#next-banner.mode-brk .banner-pill { color: var(--banner-brk-text); }
+#next-banner.mode-off .banner-pill { color: var(--banner-off-text); }
+
+.banner-main {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  overflow: hidden;
+}
+.banner-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#next-banner.mode-now  .banner-label { color: var(--banner-now-text); opacity: 0.75; }
+#next-banner.mode-brk  .banner-label { color: var(--banner-brk-text); opacity: 0.75; }
+#next-banner.mode-off  .banner-label { color: var(--banner-off-text); opacity: 0.75; }
+
+.banner-course {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--banner-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#next-banner.mode-now  .banner-course { color: var(--banner-now-text); }
+#next-banner.mode-brk  .banner-course { color: var(--banner-brk-text); }
+#next-banner.mode-off  .banner-course { color: var(--banner-off-text); }
+
+.banner-loc {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--banner-text);
+  opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#next-banner.mode-now  .banner-loc { color: var(--banner-now-text); }
+#next-banner.mode-brk  .banner-loc { color: var(--banner-brk-text); }
+#next-banner.mode-off  .banner-loc { color: var(--banner-off-text); }
+
+.banner-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* pulsing dot for "in class now" */
+.banner-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--success);
+  animation: pulse 1.6s ease-in-out infinite;
+  display: none;
+}
+#next-banner.mode-now .banner-dot { display: block; }
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.45; transform:scale(1.35); }
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header {
+  position: sticky;
+  top: 0; z-index: 200;
+  height: var(--header-h);
+  background: var(--header-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  transition: background var(--t), border-color var(--t);
+}
+.logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 17px; font-weight: 500; letter-spacing: 0.12em;
+  background: linear-gradient(130deg, var(--accent) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; user-select: none;
+}
+.logo span { font-size: 11px; letter-spacing: 0.06em; opacity: 0.65; }
+.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 15px; border-radius: 8px;
+  font-size: 12.5px; font-family: 'Noto Sans JP', sans-serif; font-weight: 400;
+  cursor: pointer; border: none; outline: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #8f7fff; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,106,247,0.4); }
+.btn-ghost { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(248,113,113,0.3); }
+.btn-danger:hover { background: rgba(248,113,113,0.08); }
+
+.theme-toggle {
+  width: 40px; height: 24px; border-radius: 12px;
+  background: var(--toggle-bg); border: 1px solid var(--border2);
+  cursor: pointer; position: relative;
+  transition: background var(--t), border-color var(--t); flex-shrink: 0;
+}
+.theme-toggle::after {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); top: 3px; left: 3px;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), background 0.22s;
+}
+[data-theme="light"] .theme-toggle::after { transform: translateX(16px); background: var(--accent2); }
+.theme-icon { position: absolute; font-size: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.icon-moon { right: 5px; display: var(--moon); }
+.icon-sun  { left:  5px; display: var(--sun); }
+.hdr-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════════ */
+main {
+  position: relative; z-index: 1;
+  padding: 24px 24px 100px;
+  max-width: 1280px; margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════
+   LOADING CARD (replaces drop-zone)
+═══════════════════════════════════════════════ */
+#import-panel { margin-bottom: 24px; }
+#loading-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: 60px 32px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: background var(--t), border-color var(--t);
+}
+.loading-icon  { font-size: 40px; margin-bottom: 16px; }
+.loading-title { font-size: 15px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+.loading-sub   { font-size: 13px; color: var(--text-muted); line-height: 1.8; }
+
+/* ═══════════════════════════════════════════════
+   STATS BAR
+═══════════════════════════════════════════════ */
+#stats-bar {
+  display: none; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+}
+.stat-chip {
+  display: flex; align-items: baseline; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 16px; font-size: 12.5px;
+  transition: background var(--t), border-color var(--t); box-shadow: var(--shadow);
+}
+.stat-chip .lbl  { color: var(--text-muted); }
+.stat-chip .val  { font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; font-size: 15px; }
+.stat-chip .unit { font-size: 11px; color: var(--text-muted); }
+
+/* today chip */
+#chip-today .val { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   TIMETABLE
+═══════════════════════════════════════════════ */
+#timetable-wrap {
+  display: none; border-radius: var(--radius-panel);
+  border: 1px solid var(--border); background: var(--surface);
+  overflow: hidden; box-shadow: var(--shadow);
+  transition: background var(--t), border-color var(--t);
+}
+.tt-scroll { overflow-x: auto; }
+.timetable { width: 100%; border-collapse: collapse; min-width: 420px; }
+
+.timetable thead th {
+  background: var(--surface2); height: 44px;
+  padding: 0 12px; font-size: 12px; font-weight: 500;
+  letter-spacing: 0.05em; color: var(--text-muted); text-align: center;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t); white-space: nowrap;
+}
+.timetable thead th.col-time {
+  width: var(--time-col); border-right: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  position: sticky; left: 0; z-index: 5;
+}
+.timetable thead th.col-day { min-width: 200px; }
+.timetable thead th.today-hdr { color: var(--accent); }
+
+.timetable tbody td {
+  vertical-align: top; padding: 5px;
+  height: var(--row-height);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.timetable tbody td.col-time {
+  text-align: center; background: var(--surface2);
+  border-right: 1px solid var(--border2);
+  padding: 0; width: var(--time-col);
+  position: sticky; left: 0; z-index: 2;
+  transition: background var(--t);
+}
+.timetable tbody td.col-time.is-now   { background: rgba(124,106,247,0.11); }
+.timetable tbody td.col-time.is-break { background: rgba(251,191,36,0.07); }
+.timetable tbody tr:last-child td { border-bottom: none; }
+.timetable tbody td:last-child    { border-right: none; }
+
+.time-label {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; gap: 3px;
+}
+.time-num   { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: var(--text-dim); }
+.time-start { font-size: 9.5px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.time-end   { font-size: 9.5px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.time-num.active-num { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   COURSE CARD
+═══════════════════════════════════════════════ */
+.course-card {
+  border-radius: var(--radius-card); padding: 9px 11px;
+  height: calc(var(--row-height) - 10px);
+  display: flex; flex-direction: column; justify-content: space-between;
+  cursor: pointer; overflow: hidden; position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.course-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+.course-card:hover { transform: translateY(-2px) scale(1.01); box-shadow: var(--shadow-card); z-index: 10; }
+.cn { font-size: 12.5px; font-weight: 500; color: var(--text); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cm { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--text-muted); overflow: hidden; white-space: nowrap; }
+.cm-teacher { overflow: hidden; text-overflow: ellipsis; }
+.cm-room    { font-family: 'DM Mono', monospace; font-size: 10px; margin-left: auto; flex-shrink: 0; }
+
+/* glow on active period card */
+.course-card.card-active {
+  box-shadow: 0 0 0 2px var(--accent), var(--shadow-card);
+}
+
+/* Color palette */
+[data-theme="dark"] .cc-0  { background:rgba(124,106,247,0.20); } [data-theme="dark"] .cc-0::after  { background:#7c6af7; }
+[data-theme="dark"] .cc-1  { background:rgba(192,132,252,0.17); } [data-theme="dark"] .cc-1::after  { background:#c084fc; }
+[data-theme="dark"] .cc-2  { background:rgba(56,189,248,0.17);  } [data-theme="dark"] .cc-2::after  { background:#38bdf8; }
+[data-theme="dark"] .cc-3  { background:rgba(52,211,153,0.17);  } [data-theme="dark"] .cc-3::after  { background:#34d399; }
+[data-theme="dark"] .cc-4  { background:rgba(251,191,36,0.17);  } [data-theme="dark"] .cc-4::after  { background:#fbbf24; }
+[data-theme="dark"] .cc-5  { background:rgba(248,113,113,0.17); } [data-theme="dark"] .cc-5::after  { background:#f87171; }
+[data-theme="dark"] .cc-6  { background:rgba(251,146,60,0.17);  } [data-theme="dark"] .cc-6::after  { background:#fb923c; }
+[data-theme="dark"] .cc-7  { background:rgba(163,230,53,0.17);  } [data-theme="dark"] .cc-7::after  { background:#a3e635; }
+[data-theme="dark"] .cc-8  { background:rgba(244,114,182,0.17); } [data-theme="dark"] .cc-8::after  { background:#f472b6; }
+[data-theme="dark"] .cc-9  { background:rgba(99,102,241,0.20);  } [data-theme="dark"] .cc-9::after  { background:#6366f1; }
+
+[data-theme="light"] .cc-0  { background:rgba(124,106,247,0.10); } [data-theme="light"] .cc-0::after  { background:#7c6af7; }
+[data-theme="light"] .cc-1  { background:rgba(192,132,252,0.10); } [data-theme="light"] .cc-1::after  { background:#c084fc; }
+[data-theme="light"] .cc-2  { background:rgba(56,189,248,0.10);  } [data-theme="light"] .cc-2::after  { background:#38bdf8; }
+[data-theme="light"] .cc-3  { background:rgba(52,211,153,0.10);  } [data-theme="light"] .cc-3::after  { background:#34d399; }
+[data-theme="light"] .cc-4  { background:rgba(251,191,36,0.12);  } [data-theme="light"] .cc-4::after  { background:#ca8a04; }
+[data-theme="light"] .cc-5  { background:rgba(248,113,113,0.10); } [data-theme="light"] .cc-5::after  { background:#f87171; }
+[data-theme="light"] .cc-6  { background:rgba(251,146,60,0.10);  } [data-theme="light"] .cc-6::after  { background:#fb923c; }
+[data-theme="light"] .cc-7  { background:rgba(101,163,13,0.10);  } [data-theme="light"] .cc-7::after  { background:#65a30d; }
+[data-theme="light"] .cc-8  { background:rgba(244,114,182,0.10); } [data-theme="light"] .cc-8::after  { background:#f472b6; }
+[data-theme="light"] .cc-9  { background:rgba(99,102,241,0.10);  } [data-theme="light"] .cc-9::after  { background:#6366f1; }
+
+/* no course today */
+#no-today {
+  display: none; text-align: center;
+  padding: 60px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;
+}
+#no-today .big { font-size: 36px; margin-bottom: 12px; }
+
+/* ═══════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════ */
+#modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); z-index: 300;
+  align-items: center; justify-content: center; padding: 24px;
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 30px; width: 460px; max-width: 100%;
+  position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+  animation: modalIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
+  transition: background var(--t), border-color var(--t);
+}
+@keyframes modalIn { from { transform:scale(0.92) translateY(12px); opacity:0; } to { transform:none; opacity:1; } }
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.modal-close:hover { color: var(--text); border-color: var(--accent); }
+.modal-color-bar { height: 3px; border-radius: 2px; margin-bottom: 18px; }
+.modal-code { font-family:'DM Mono',monospace; font-size:11px; padding:3px 10px; border-radius:20px; display:inline-block; margin-bottom:12px; }
+.modal-name { font-size:20px; font-weight:700; line-height:1.3; margin-bottom:22px; color:var(--text); }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.modal-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; transition:background var(--t),border-color var(--t); }
+.modal-item.full { grid-column:1/-1; }
+.modal-lbl { font-size:10.5px; color:var(--text-muted); margin-bottom:5px; letter-spacing:0.04em; }
+.modal-val { font-size:14px; color:var(--text); }
+
+/* ═══════════════════════════════════════════════
+   COURSE LIST
+═══════════════════════════════════════════════ */
+#course-list-wrap { display:none; margin-top:24px; }
+.sec-title { font-size:11px; font-weight:500; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:14px; }
+.tbl-wrap { border:1px solid var(--border); border-radius:var(--radius-panel); overflow:hidden; box-shadow:var(--shadow); }
+.course-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+.course-tbl thead th { text-align:left; padding:10px 14px; font-size:11px; font-weight:500; color:var(--text-muted); letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--surface2); white-space:nowrap; transition:background var(--t); }
+.course-tbl tbody { background:var(--surface); transition:background var(--t); }
+.course-tbl tbody td { padding:11px 14px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; transition:background var(--t); }
+.course-tbl tbody tr:last-child td { border-bottom:none; }
+.course-tbl tbody tr:hover td { background:rgba(124,106,247,0.04); }
+.badge { display:inline-block; font-family:'DM Mono',monospace; font-size:10.5px; padding:3px 8px; border-radius:5px; }
+.badge-code   { background:var(--surface2); color:var(--accent3); border:1px solid var(--border); }
+.badge-credit { background:rgba(124,106,247,0.12); color:var(--accent); }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; flex-shrink:0; }
+.err-box { margin-top:10px; background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.25); border-radius:10px; padding:12px 16px; font-size:12px; color:var(--danger); display:flex; flex-direction:column; gap:4px; }
+
+/* ═══════════════════════════════════════════════
+   TEST MODE PANEL — floating, hidden by default
+═══════════════════════════════════════════════ */
+#testmode-panel {
+  display: none;                   /* JS reveals on trigger */
+  flex-direction: column;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9000;
+  width: 340px;
+  background: #0a0a10;
+  border: 1px solid #fbbf2455;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(251,191,36,0.08);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #e0e0e8;
+  /* subtle amber glow */
+  filter: drop-shadow(0 0 18px rgba(251,191,36,0.18));
+}
+
+/* light-mode: keep the panel always dark for contrast */
+[data-theme="light"] #testmode-panel {
+  background: #111118;
+  border-color: #fbbf2466;
+}
+
+#tm-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(251,191,36,0.08);
+  border-bottom: 1px solid #fbbf2430;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+#tm-header:hover { background: rgba(251,191,36,0.14); }
+
+#tm-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  background: rgba(251,191,36,0.18);
+  color: #fbbf24;
+  border: 1px solid #fbbf2455;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+#tm-display {
+  flex: 1;
+  font-size: 12px;
+  color: #9898b0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tm-arrow {
+  font-size: 10px;
+  color: #60607a;
+  flex-shrink: 0;
+}
+
+#tm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.tm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tm-lbl {
+  font-size: 10px;
+  color: #60607a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tm-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tm-btn {
+  background: #1e1e28;
+  border: 1px solid #333348;
+  color: #9898b0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.tm-btn:hover { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.07); }
+.tm-btn:active { transform: scale(0.96); }
+
+.tm-select {
+  background: #1e1e28;
+  border: 1px solid #333348;
+  color: #e0e0e8;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  flex: 1;
+  min-width: 100px;
+}
+.tm-select:focus { border-color: #fbbf24; }
+
+.tm-input {
+  background: #1e1e28;
+  border: 1px solid #333348;
+  color: #fbbf24;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  width: 46px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.tm-input::-webkit-inner-spin-button,
+.tm-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.tm-input:focus { border-color: #fbbf24; }
+.tm-sep { color: #60607a; font-size: 16px; font-weight: 300; }
+
+.tm-presets {
+  gap: 5px;
+}
+.tm-preset {
+  background: #16161d;
+  border: 1px solid #28283a;
+  color: #9898b0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.tm-preset:hover { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.06); }
+
+.tm-actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #28283a;
+}
+.tm-apply { border-color: #7c6af7; color: #a89ef8; flex: 1; justify-content: center; }
+.tm-apply:hover { background: rgba(124,106,247,0.12) !important; border-color: #7c6af7 !important; color: #a89ef8 !important; }
+.tm-reset { color: #60607a; }
+.tm-close { color: #f87171; border-color: rgba(248,113,113,0.3); }
+.tm-close:hover { background: rgba(248,113,113,0.08) !important; border-color: #f87171 !important; color: #f87171 !important; }
+
+/* banner map button */
+.bn-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: inherit;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.bn-map-btn:hover { background: rgba(255,255,255,0.15); }
+
+/* modal floormap button */
+.btn-floormap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent3);
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-floormap:hover { border-color: var(--accent3); background: rgba(56,189,248,0.08); }
+
+/* ─── Floor Map Overlay ─── */
+#floormap-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 400;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#floormap-overlay.open { display: flex; }
+
+#floormap-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: min(720px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55);
+  animation: modalIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
+  transition: background var(--t), border-color var(--t);
+}
+
+#fm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#fm-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.06em;
+}
+#fm-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.fm-close {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.fm-close:hover { color: var(--text); border-color: var(--accent); }
+
+#fm-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--surface2);
+}
+#fm-img {
+  max-width: 100%;
+  max-height: calc(90vh - 120px);
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+}
+.fm-err {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 2;
+  padding: 40px;
+}
+.fm-err small { font-family: 'DM Mono', monospace; font-size: 11px; }
+
+/* ── TOAST / MISC ── */
+#toast {
+  position:fixed; bottom:28px; left:50%;
+  transform:translateX(-50%) translateY(90px);
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:11px 20px; font-size:13px; color:var(--text);
+  z-index:999; white-space:nowrap; box-shadow:var(--shadow);
+  opacity:0; transition:transform 0.32s cubic-bezier(0.34,1.5,0.64,1), opacity 0.28s;
+  pointer-events:none;
+}
+#toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+.spinner { display:inline-block; width:15px; height:15px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="logo">CAMPUS <span>時間割</span></div>
+  <div class="header-right">
+    <button class="btn btn-ghost" id="btn-list"   style="display:none" onclick="toggleList()">📋 一覧</button>
+    <button class="btn btn-ghost" id="btn-reload" style="display:none" onclick="reloadData()">🔄 更新</button>
+    <button class="btn btn-danger" id="btn-clear" style="display:none" onclick="clearAll()">✕ クリア</button>
+    <div class="hdr-sep"></div>
+    <div class="theme-toggle" onclick="toggleTheme()" title="ライト/ダーク切替">
+      <span class="theme-icon icon-moon">🌙</span>
+      <span class="theme-icon icon-sun">☀️</span>
+    </div>
+    <button class="btn btn-ghost" id="btn-reload2" style="display:none" onclick="loadTimeXlsx()">🔄 再読み込み</button>
+  </div>
+</header>
+
+<!-- ═══ NEXT-CLASS BANNER ═══ -->
+<div id="next-banner">
+  <span class="banner-dot"></span>
+  <span class="banner-pill" id="bn-pill">NEXT</span>
+  <div class="banner-main">
+    <span class="banner-label" id="bn-label">次の科目は</span>
+    <span class="banner-course" id="bn-course"></span>
+  </div>
+  <span class="banner-loc" id="bn-loc"></span>
+  <span class="banner-time" id="bn-time"></span>
+  <button id="bn-map-btn" class="bn-map-btn" style="display:none" title="フロアマップ">
+    🗺 マップ
+  </button>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<main>
+
+  <!-- Loading panel (replaces old drop-zone / import panel) -->
+  <div id="import-panel">
+    <div id="loading-card">
+      <div class="loading-icon" id="loading-icon">⏳</div>
+      <div class="loading-title" id="loading-title">time.xlsx を読み込んでいます…</div>
+      <div class="loading-sub" id="loading-sub">同フォルダの授業データを取得中です</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats-bar">
+    <div class="stat-chip" id="chip-today">
+      <span class="lbl">本日</span>
+      <span class="val" id="stat-today">—</span>
+    </div>
+    <div class="stat-chip">
+      <span class="lbl">本日の科目</span>
+      <span class="val" id="stat-today-n">0</span>
+    </div>
+    <div class="stat-chip">
+      <span class="lbl">合計単位</span>
+      <span class="val" id="stat-cr">0</span>
+      <span class="unit">単位</span>
+    </div>
+    <div class="stat-chip" id="stat-err-chip" style="display:none">
+      <span class="lbl">⚠️ エラー</span>
+      <span class="val" id="stat-err">0</span>
+    </div>
+  </div>
+
+  <!-- Timetable (today only) -->
+  <div id="timetable-wrap">
+    <div class="tt-scroll">
+      <table class="timetable" id="timetable"></table>
+    </div>
+    <div id="no-today">
+      <div class="big">🎉</div>
+      本日（<span id="no-today-day"></span>）は授業がありません
+    </div>
+  </div>
+
+  <!-- Course list (all) -->
+  <div id="course-list-wrap">
+    <div class="sec-title">全科目一覧</div>
+    <div class="tbl-wrap">
+      <table class="course-tbl">
+        <thead><tr>
+          <th>コード</th><th>授業名</th><th>担当者</th>
+          <th>曜日・時限</th><th>教室</th><th>単位</th>
+        </tr></thead>
+        <tbody id="course-tbody"></tbody>
+      </table>
+    </div>
+    <div id="err-box-wrap"></div>
+  </div>
+</main>
+
+<!-- ═══ MODAL ═══ -->
+<div id="modal-overlay" onclick="overlayClick(event)">
+  <div id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-color-bar" id="m-bar"></div>
+    <div class="modal-code"      id="m-code"></div>
+    <div class="modal-name"      id="m-name"></div>
+    <div class="modal-grid"      id="m-grid"></div>
+    <div id="m-floormap" style="display:none;margin-top:12px;">
+      <button id="m-floormap-btn" class="btn-floormap">
+        🗺 <span id="m-floormap-label"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FLOOR MAP OVERLAY ═══ -->
+<div id="floormap-overlay" onclick="fmOverlayClick(event)">
+  <div id="floormap-modal">
+    <div id="fm-header">
+      <div>
+        <div id="fm-title"></div>
+        <div id="fm-sub"></div>
+      </div>
+      <button class="fm-close" onclick="closeFloorMap()">✕</button>
+    </div>
+    <div id="fm-body">
+      <img id="fm-img" src="" alt="" onerror="this.parentNode.innerHTML='<div class=fm-err>画像が見つかりません<br><small>同フォルダに '+this.alt+'.png を配置してください</small></div>'">
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TEST MODE PANEL (hidden by default) ═══
+     Reveal: URL ?testmode | Konami ↑↑↓↓←→←→BA | Logo ×5
+-->
+<div id="testmode-panel">
+  <div id="tm-header" onclick="tmToggle()">
+    <span id="tm-badge">🔧 TEST</span>
+    <span id="tm-display">実時刻</span>
+    <span id="tm-arrow">▼</span>
+  </div>
+  <div id="tm-body">
+    <!-- Day row -->
+    <div class="tm-row">
+      <span class="tm-lbl">曜日</span>
+      <div class="tm-ctrl">
+        <button class="tm-btn" onclick="tmStepDay(-1)">‹</button>
+        <select id="tm-day" class="tm-select">
+          <option value="Mon">月 Mon</option>
+          <option value="Tue">火 Tue</option>
+          <option value="Wed">水 Wed</option>
+          <option value="Thu">木 Thu</option>
+          <option value="Fri">金 Fri</option>
+          <option value="Sat">土 Sat</option>
+        </select>
+        <button class="tm-btn" onclick="tmStepDay(+1)">›</button>
+      </div>
+    </div>
+    <!-- Time row -->
+    <div class="tm-row">
+      <span class="tm-lbl">時刻</span>
+      <div class="tm-ctrl">
+        <button class="tm-btn" onclick="tmStep(-10)">−10</button>
+        <button class="tm-btn" onclick="tmStep(-1)">−1</button>
+        <input id="tm-hour" class="tm-input" type="number" min="0" max="23" value="09">
+        <span class="tm-sep">:</span>
+        <input id="tm-min"  class="tm-input" type="number" min="0" max="59" value="00">
+        <button class="tm-btn" onclick="tmStep(+1)">+1</button>
+        <button class="tm-btn" onclick="tmStep(+10)">+10</button>
+      </div>
+    </div>
+    <!-- Presets -->
+    <div class="tm-row">
+      <span class="tm-lbl">プリセット</span>
+      <div class="tm-ctrl tm-presets">
+        <button class="tm-preset" onclick="setPreset(8,50)">登校前</button>
+        <button class="tm-preset" onclick="setPreset(9,0)">1限開始</button>
+        <button class="tm-preset" onclick="setPreset(10,40)">休憩①</button>
+        <button class="tm-preset" onclick="setPreset(10,50)">2限開始</button>
+        <button class="tm-preset" onclick="setPreset(12,30)">昼休み</button>
+        <button class="tm-preset" onclick="setPreset(13,20)">3限開始</button>
+        <button class="tm-preset" onclick="setPreset(15,10)">4限開始</button>
+        <button class="tm-preset" onclick="setPreset(17,0)">5限開始</button>
+        <button class="tm-preset" onclick="setPreset(18,50)">6限開始</button>
+        <button class="tm-preset" onclick="setPreset(20,30)">終了後</button>
+      </div>
+    </div>
+    <!-- Actions -->
+    <div class="tm-actions">
+      <button class="tm-btn tm-apply" onclick="tmApply()">▶ 適用</button>
+      <button class="tm-btn tm-reset" onclick="tmReset()">↺ リセット</button>
+      <button class="tm-btn tm-close" onclick="tmClose()">✕ 閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────── */
+const DAYS   = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY_JA = { Mon:'月', Tue:'火', Wed:'水', Thu:'木', Fri:'金', Sat:'土' };
+const JS_DAY = { 0:null, 1:'Mon', 2:'Tue', 3:'Wed', 4:'Thu', 5:'Fri', 6:'Sat' };
+
+/*
+  時限計算:
+  授業 100分、休憩 10分、昼休みは3限開始を 13:20 に固定
+  1限  9:00 → 10:40
+  休憩       10:40 → 10:50
+  2限 10:50 → 12:30
+  昼休み     12:30 → 13:20
+  3限 13:20 → 15:00
+  休憩       15:00 → 15:10
+  4限 15:10 → 16:50
+  休憩       16:50 → 17:00
+  5限 17:00 → 18:40
+  休憩       18:40 → 18:50
+  6限 18:50 → 20:30
+  7限 なし
+*/
+const PERIODS = [1,2,3,4,5,6];
+const PERIOD_START_MIN = {
+  1:  9*60+0,
+  2: 10*60+50,
+  3: 13*60+20,
+  4: 15*60+10,
+  5: 17*60+0,
+  6: 18*60+50
+};
+const CLASS_DURATION = 100; // minutes
+
+function periodEndMin(p)   { return PERIOD_START_MIN[p] + CLASS_DURATION; }
+function fmtMin(m)         { return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+function periodStartStr(p) { return fmtMin(PERIOD_START_MIN[p]); }
+function periodEndStr(p)   { return fmtMin(periodEndMin(p)); }
+
+const PALETTE = [
+  '#7c6af7','#c084fc','#38bdf8','#34d399',
+  '#fbbf24','#f87171','#fb923c','#a3e635','#f472b6','#6366f1'
+];
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+let courses  = [];
+let colorMap = {};
+let errors   = [];
+let listOpen = false;
+let lastSrc  = '';
+let _bannerTimer = null;
+let _tickTimer   = null;
+
+/* ─────────────────────────────────────────────
+   THEME
+───────────────────────────────────────────── */
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('campus-theme', next);
+}
+(function() {
+  const s = localStorage.getItem('campus-theme');
+  if (s) document.documentElement.dataset.theme = s;
+})();
+
+/* ─────────────────────────────────────────────
+   FILE HANDLING
+───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   FILE LOADING  — time.xlsx (same folder, fixed)
+───────────────────────────────────────────── */
+
+// Resolve same-folder URL that works for both http:// and file://
+function sameDir(filename) {
+  // location.href: strip filename portion, append target
+  return location.href.replace(/\/[^/?#]*([?#].*)?$/, '/') + filename;
+}
+
+function floorMapSrc(key) {
+  return sameDir(key + '.png');
+}
+
+// Load time.xlsx unconditionally on startup
+async function loadTimeXlsx() {
+  setLoadingState('loading');
+  const url = sameDir('time.xlsx');
+  try {
+    // Try fetch first (works on http/https and some file:// setups)
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf  = await res.arrayBuffer();
+    const wb   = XLSX.read(buf, { type: 'array' });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    parseAndRender(data);
+  } catch (fetchErr) {
+    // Fallback: XMLHttpRequest (sometimes works on file://)
+    try {
+      const buf = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload  = () => xhr.status < 400 ? resolve(xhr.response) : reject(new Error(`XHR ${xhr.status}`));
+        xhr.onerror = () => reject(new Error('XHR network error'));
+        xhr.send();
+      });
+      const wb   = XLSX.read(buf, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      parseAndRender(data);
+    } catch (xhrErr) {
+      setLoadingState('error', `time.xlsx の読み込みに失敗しました。同フォルダに time.xlsx を配置してください。\n（${xhrErr.message}）`);
+    }
+  }
+}
+
+function setLoadingState(state, msg) {
+  const icon  = document.getElementById('loading-icon');
+  const title = document.getElementById('loading-title');
+  const sub   = document.getElementById('loading-sub');
+  if (!icon) return;
+  if (state === 'loading') {
+    icon.textContent  = '⏳';
+    title.textContent = 'time.xlsx を読み込んでいます…';
+    sub.textContent   = '同フォルダの授業データを取得中です';
+  } else if (state === 'error') {
+    icon.textContent  = '❌';
+    title.textContent = '読み込みに失敗しました';
+    sub.innerHTML     = esc(msg).replace(/\n/g,'<br>') +
+      '<br><br><button class="btn btn-ghost" onclick="loadTimeXlsx()" style="margin-top:4px">🔄 再試行</button>';
+  }
+}
+
+function reloadData() { loadTimeXlsx(); }
+
+/* ─────────────────────────────────────────────
+   PARSE
+   Format: コード|名|担当者|曜日|時間|建物|場所|単位
+───────────────────────────────────────────── */
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
+
+function parseAndRender(rows) {
+  const parsed = [], errs = [];
+  let start = 0;
+  if (rows.length > 0) {
+    const c0 = String(rows[0][0]||'').toLowerCase();
+    if (c0.includes('コード')||c0.includes('code')||c0.includes('授業')||c0==='') start=1;
+  }
+  for (let i = start; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => c===''||c==null)) continue;
+    const code     = String(r[0]||'').trim();
+    const name     = String(r[1]||'').trim();
+    const teacher  = String(r[2]||'').trim();
+    const dayRaw   = String(r[3]||'').trim();
+    const timeRaw  = String(r[4]||'').trim();
+    const building = String(r[5]||'').trim();
+    const room     = String(r[6]||'').trim();
+    const credits  = Number(r[7]) || 0;
+    if (!name) continue;
+
+    const slots = [];
+    for (const tok of timeRaw.split(/[,、\s]+/).filter(Boolean)) {
+      const full = tok.match(/^(Mon|Tue|Wed|Thu|Fri|Sat)-([1-6])$/i);
+      const num  = tok.match(/^([1-6])$/);
+      if (full) {
+        const d = cap(full[1]), p = parseInt(full[2]);
+        if (DAYS.includes(d)) slots.push({ day:d, period:p });
+        else errs.push(`行${i+1} [${name}]: 曜日不正 ${tok}`);
+      } else if (num && dayRaw) {
+        const d = cap(dayRaw);
+        if (DAYS.includes(d)) slots.push({ day:d, period:parseInt(num[1]) });
+        else errs.push(`行${i+1} [${name}]: 曜日不正 ${dayRaw}`);
+      } else if (tok) {
+        errs.push(`行${i+1} [${name}]: フォーマット不正 "${tok}"`);
+      }
+    }
+    parsed.push({ code, name, teacher, dayRaw, timeRaw, building, room, credits, slots });
+  }
+  if (!parsed.length) { showToast('⚠️ 授業データが見つかりませんでした'); return; }
+
+  const keys = [...new Set(parsed.map(c => c.code||c.name))];
+  keys.forEach((k,i) => { colorMap[k] = i % 10; });
+  courses = parsed;
+  errors  = errs;
+  renderAll();
+  showToast(`✅ ${parsed.length}件の科目を読み込みました`);
+}
+
+/* ─────────────────────────────────────────────
+   TIME HELPERS  (real + test-mode override)
+───────────────────────────────────────────── */
+
+// Test mode state — never touches real clock
+const TEST = {
+  active:  false,
+  dayKey:  null,   // e.g. 'Mon'
+  minutes: 0,      // minutes since midnight
+};
+
+function nowMin() {
+  if (TEST.active) return TEST.minutes;
+  const n = new Date();
+  return n.getHours()*60 + n.getMinutes();
+}
+function todayKey() {
+  if (TEST.active) return TEST.dayKey;
+  return JS_DAY[new Date().getDay()];
+}
+
+function isBreak(p) {
+  if (p >= 6) return false;
+  const nm = nowMin();
+  return nm > periodEndMin(p) && nm < PERIOD_START_MIN[p+1];
+}
+
+/* ─────────────────────────────────────────────
+   TEST MODE PANEL
+   Hidden unless: URL has ?testmode, OR logo
+   clicked 5×, OR Konami code entered.
+───────────────────────────────────────────── */
+let _konamiSeq = [];
+const KONAMI = [38,38,40,40,37,39,37,39,66,65];
+let _logoClicks = 0, _logoTimer = null;
+
+function _initTestMode() {
+  // URL flag
+  if (location.search.includes('testmode')) _openTestPanel();
+
+  // Konami code
+  document.addEventListener('keydown', e => {
+    _konamiSeq.push(e.keyCode);
+    if (_konamiSeq.length > 10) _konamiSeq.shift();
+    if (_konamiSeq.join(',') === KONAMI.join(',')) {
+      _konamiSeq = [];
+      _openTestPanel();
+    }
+  });
+
+  // Logo 5× fast click
+  document.querySelector('.logo').addEventListener('click', () => {
+    _logoClicks++;
+    clearTimeout(_logoTimer);
+    if (_logoClicks >= 5) { _logoClicks = 0; _openTestPanel(); return; }
+    _logoTimer = setTimeout(() => { _logoClicks = 0; }, 1500);
+  });
+
+  // Sync selects with real time as default
+  _syncTestDefaults();
+}
+
+function _syncTestDefaults() {
+  const now  = new Date();
+  const real = JS_DAY[now.getDay()] || 'Mon';
+  const sel  = document.getElementById('tm-day');
+  if (sel) sel.value = real;
+  const h = document.getElementById('tm-hour');
+  const m = document.getElementById('tm-min');
+  if (h) h.value = String(now.getHours()).padStart(2,'0');
+  if (m) m.value = String(now.getMinutes()).padStart(2,'0');
+  _refreshTestDisplay();
+}
+
+function _openTestPanel() {
+  const p = document.getElementById('testmode-panel');
+  if (!p) return;
+  p.style.display = 'flex';
+  _syncTestDefaults();
+  showToast('🔧 テストモードパネルを開きました');
+}
+
+function tmToggle() {
+  const p = document.getElementById('testmode-panel');
+  const body = document.getElementById('tm-body');
+  const arrow = document.getElementById('tm-arrow');
+  const collapsed = body.style.display === 'none';
+  body.style.display  = collapsed ? 'flex' : 'none';
+  arrow.textContent   = collapsed ? '▼' : '▲';
+}
+
+function tmApply() {
+  const day = document.getElementById('tm-day').value;
+  const h   = parseInt(document.getElementById('tm-hour').value)  || 0;
+  const m   = parseInt(document.getElementById('tm-min').value)   || 0;
+  TEST.active  = true;
+  TEST.dayKey  = day;
+  TEST.minutes = h*60 + m;
+  _refreshTestDisplay();
+  // re-render with overridden time
+  if (courses.length) { renderTimetable(); updateBanner(); rerenderPeriodHighlights(); }
+  showToast(`🔧 テスト時刻: ${DAY_JA[day]}曜日 ${fmtMin(TEST.minutes)}`);
+}
+
+function tmStep(delta) {
+  if (!TEST.active) tmApply();           // activate first
+  TEST.minutes = Math.max(0, Math.min(1439, TEST.minutes + delta));
+  // sync inputs
+  document.getElementById('tm-hour').value = String(Math.floor(TEST.minutes/60)).padStart(2,'0');
+  document.getElementById('tm-min').value  = String(TEST.minutes%60).padStart(2,'0');
+  _refreshTestDisplay();
+  if (courses.length) { renderTimetable(); updateBanner(); rerenderPeriodHighlights(); }
+}
+
+function tmStepDay(delta) {
+  if (!TEST.active) tmApply();
+  const idx = (DAYS.indexOf(TEST.dayKey) + delta + DAYS.length) % DAYS.length;
+  TEST.dayKey = DAYS[idx];
+  document.getElementById('tm-day').value = TEST.dayKey;
+  _refreshTestDisplay();
+  if (courses.length) { renderTimetable(); updateBanner(); rerenderPeriodHighlights(); }
+}
+
+function setPreset(h, m) {
+  document.getElementById('tm-hour').value = String(h).padStart(2,'0');
+  document.getElementById('tm-min').value  = String(m).padStart(2,'0');
+  tmApply();
+}
+
+function tmReset() {
+  TEST.active = false;
+  _syncTestDefaults();
+  if (courses.length) { renderTimetable(); updateBanner(); rerenderPeriodHighlights(); }
+  showToast('🔧 テストモード解除 — 実時刻に戻しました');
+}
+
+function tmClose() {
+  document.getElementById('testmode-panel').style.display = 'none';
+  if (TEST.active) tmReset();
+}
+
+function _refreshTestDisplay() {
+  const disp = document.getElementById('tm-display');
+  if (!disp) return;
+  if (TEST.active) {
+    disp.textContent = `▶ ${DAY_JA[TEST.dayKey]}曜日 ${fmtMin(TEST.minutes)}`;
+    disp.style.color = '#fbbf24';
+  } else {
+    const n = new Date();
+    disp.textContent = `実時刻: ${DAY_JA[JS_DAY[n.getDay()]||'Mon']||'?'}曜日 ${fmtMin(n.getHours()*60+n.getMinutes())}`;
+    disp.style.color = '';
+  }
+}
+
+/* ─────────────────────────────────────────────
+   BANNER
+───────────────────────────────────────────── */
+function updateBanner() {
+  const banner  = document.getElementById('next-banner');
+  const today   = todayKey();
+  if (!today || !courses.length) { banner.style.display = 'none'; return; }
+
+  // Courses today, sorted by period
+  const todayCourses = courses
+    .filter(c => c.slots.some(s => s.day === today))
+    .map(c => ({ course: c, period: c.slots.find(s=>s.day===today).period }))
+    .sort((a,b) => a.period - b.period);
+
+  if (!todayCourses.length) { banner.style.display = 'none'; return; }
+
+  const nm = nowMin();
+
+  // Find the current or next course
+  let inClass  = null;
+  let nextItem = null;
+  let afterBreak = false;
+
+  for (const item of todayCourses) {
+    const p = item.period;
+    const s = PERIOD_START_MIN[p];
+    const e = periodEndMin(p);
+    if (nm >= s && nm <= e) { inClass = item; break; }
+    if (nm < s && !nextItem) {
+      nextItem = item;
+      // check if we're in a break right before this period
+      if (p > 1) {
+        const prevE = periodEndMin(p-1);
+        if (nm > prevE) afterBreak = true;
+      }
+    }
+  }
+
+  const bn       = document.getElementById('next-banner');
+  const pill     = document.getElementById('bn-pill');
+  const label    = document.getElementById('bn-label');
+  const course   = document.getElementById('bn-course');
+  const loc      = document.getElementById('bn-loc');
+  const timeEl   = document.getElementById('bn-time');
+
+  bn.className = ''; // reset mode classes
+  bn.style.display = 'flex';
+
+  if (inClass) {
+    // ── 授業中 ──
+    const c   = inClass.course;
+    const p   = inClass.period;
+    const rem = periodEndMin(p) - nm;
+    const locStr = buildLoc(c);
+    bn.classList.add('mode-now');
+    pill.textContent   = '授業中';
+    label.textContent  = '';
+    course.textContent = c.name;
+    loc.textContent    = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = `残り ${rem}分 (〜${periodEndStr(p)})`;
+
+  } else if (afterBreak && nextItem) {
+    // ── 休憩中 ──
+    const c   = nextItem.course;
+    const p   = nextItem.period;
+    const rem = PERIOD_START_MIN[p] - nm;
+    const locStr = buildLoc(c);
+    bn.classList.add('mode-brk');
+    pill.textContent   = '休憩中';
+    label.textContent  = '次の科目は';
+    course.textContent = c.name;
+    loc.textContent    = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = `${rem}分後 (${periodStartStr(p)}〜)`;
+
+  } else if (nextItem) {
+    // ── 次の科目 ──
+    const c   = nextItem.course;
+    const p   = nextItem.period;
+    const rem = PERIOD_START_MIN[p] - nm;
+    const locStr = buildLoc(c);
+    bn.classList.add('');
+    pill.textContent   = 'NEXT';
+    label.textContent  = '次の科目は';
+    course.textContent = c.name;
+    loc.textContent    = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = rem < 60
+      ? `${rem}分後 (${periodStartStr(p)}〜)`
+      : `${periodStartStr(p)}〜 (${p}限)`;
+
+  } else {
+    // ── 本日の授業終了 ──
+    bn.classList.add('mode-off');
+    pill.textContent   = '本日終了';
+    label.textContent  = 'お疲れさまでした';
+    course.textContent = '';
+    loc.textContent    = '';
+    timeEl.textContent = '';
+  }
+}
+
+/* ─────────────────────────────────────────────
+   LOCATION HELPERS
+───────────────────────────────────────────── */
+
+// 建物・場所が "N" の場合は「教室不定」
+function isUnknown(c) {
+  return c.building === 'NA' || c.room === 'NA';
+}
+
+function buildLoc(c) {
+  if (isUnknown(c)) return '教室不定';
+  return [c.building ? c.building+'棟' : '', c.room].filter(Boolean).join(' ');
+}
+
+/*
+  フロアマップ照合:
+  利用可能マップ: E1, E2, W2, W3 (PNG, 同フォルダ)
+  建物 + 場所の百の位 → キー例: "E2", "W3"
+  百の位が 0 または数字でない場合は null
+*/
+function getFloorKey(c) {
+  if (isUnknown(c)) return null;
+  const bld = (c.building || '').toUpperCase();
+  const room = String(c.room || '');
+  // extract hundreds digit
+  const m = room.match(/^(\d)/);          // 先頭数字 (例: 201→2, 101→1)
+  if (!m) return null;
+  const floor = m[1];
+  const key = bld + floor;               // 例: "E2", "W3"
+  return ['E1','E2','W2','W3'].includes(key) ? key : null;
+}
+
+
+/* ─────────────────────────────────────────────
+   FLOOR MAP MODAL
+───────────────────────────────────────────── */
+function openFloorMap(key, courseName, room) {
+  document.getElementById('fm-title').textContent  = `${key} フロアマップ`;
+  document.getElementById('fm-sub').textContent    = `${courseName}（${room}）`;
+  document.getElementById('fm-img').src            = floorMapSrc(key);
+  document.getElementById('fm-img').alt            = key + ' フロアマップ';
+  document.getElementById('floormap-overlay').classList.add('open');
+}
+function closeFloorMap() {
+  document.getElementById('floormap-overlay').classList.remove('open');
+}
+function fmOverlayClick(e) {
+  if (e.target.id === 'floormap-overlay') closeFloorMap();
+}
+
+/* ─────────────────────────────────────────────
+   BANNER
+───────────────────────────────────────────── */
+function updateBanner() {
+  const banner  = document.getElementById('next-banner');
+  const today   = todayKey();
+  if (!today || !courses.length) { banner.style.display = 'none'; return; }
+
+  // Courses today, sorted by period
+  const todayCourses = courses
+    .filter(c => c.slots.some(s => s.day === today))
+    .map(c => ({ course: c, period: c.slots.find(s=>s.day===today).period }))
+    .sort((a,b) => a.period - b.period);
+
+  if (!todayCourses.length) { banner.style.display = 'none'; return; }
+
+  const nm = nowMin();
+
+  let inClass  = null;
+  let nextItem = null;
+  let afterBreak = false;
+
+  for (const item of todayCourses) {
+    const p = item.period;
+    const s = PERIOD_START_MIN[p];
+    const e = periodEndMin(p);
+    if (nm >= s && nm <= e) { inClass = item; break; }
+    if (nm < s && !nextItem) {
+      nextItem = item;
+      if (p > 1) {
+        const prevE = periodEndMin(p-1);
+        if (nm > prevE) afterBreak = true;
+      }
+    }
+  }
+
+  const bn       = document.getElementById('next-banner');
+  const pill     = document.getElementById('bn-pill');
+  const label    = document.getElementById('bn-label');
+  const courseEl = document.getElementById('bn-course');
+  const locEl    = document.getElementById('bn-loc');
+  const timeEl   = document.getElementById('bn-time');
+  const mapBtn   = document.getElementById('bn-map-btn');
+
+  bn.className = '';
+  bn.style.display = 'flex';
+
+  function setupMap(c) {
+    const key = getFloorKey(c);
+    if (key && mapBtn) {
+      mapBtn.style.display = 'inline-flex';
+      mapBtn.onclick = () => openFloorMap(key, c.name, c.room);
+      mapBtn.title   = key + ' フロアマップを表示';
+    } else if (mapBtn) {
+      mapBtn.style.display = 'none';
+    }
+  }
+
+  if (inClass) {
+    const c   = inClass.course;
+    const p   = inClass.period;
+    const rem = periodEndMin(p) - nm;
+    const locStr = buildLoc(c);
+    bn.classList.add('mode-now');
+    pill.textContent   = '授業中';
+    label.textContent  = '';
+    courseEl.textContent = c.name;
+    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = `残り ${rem}分 (〜${periodEndStr(p)})`;
+    setupMap(c);
+
+  } else if (afterBreak && nextItem) {
+    const c   = nextItem.course;
+    const p   = nextItem.period;
+    const rem = PERIOD_START_MIN[p] - nm;
+    const locStr = buildLoc(c);
+    bn.classList.add('mode-brk');
+    pill.textContent   = '休憩中';
+    label.textContent  = '次の科目は';
+    courseEl.textContent = c.name;
+    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = `${rem}分後 (${periodStartStr(p)}〜)`;
+    setupMap(c);
+
+  } else if (nextItem) {
+    const c   = nextItem.course;
+    const p   = nextItem.period;
+    const rem = PERIOD_START_MIN[p] - nm;
+    const locStr = buildLoc(c);
+    pill.textContent   = 'NEXT';
+    label.textContent  = '次の科目は';
+    courseEl.textContent = c.name;
+    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
+    timeEl.textContent = rem < 60
+      ? `${rem}分後 (${periodStartStr(p)}〜)`
+      : `${periodStartStr(p)}〜 (${p}限)`;
+    setupMap(c);
+
+  } else {
+    bn.classList.add('mode-off');
+    pill.textContent   = '本日終了';
+    label.textContent  = 'お疲れさまでした';
+    courseEl.textContent = '';
+    locEl.textContent  = '';
+    timeEl.textContent = '';
+    if (mapBtn) mapBtn.style.display = 'none';
+  }
+}
+
+function startTick() {
+  clearInterval(_tickTimer);
+  updateBanner();
+  _tickTimer = setInterval(() => {
+    updateBanner();
+    rerenderPeriodHighlights();
+  }, 30000);
+}
+
+/* ─────────────────────────────────────────────
+   RENDER ALL
+───────────────────────────────────────────── */
+function renderAll() {
+  const today = todayKey();
+  const todayCourses = today
+    ? courses.filter(c => c.slots.some(s => s.day===today))
+    : [];
+
+  // Stats
+  document.getElementById('stat-today').textContent   = today ? DAY_JA[today]+'曜日' : '—';
+  document.getElementById('stat-today-n').textContent = todayCourses.length;
+  document.getElementById('stat-cr').textContent      = courses.reduce((s,c)=>s+c.credits,0);
+
+  const errChip = document.getElementById('stat-err-chip');
+  errChip.style.display = errors.length ? 'flex' : 'none';
+  if (errors.length) document.getElementById('stat-err').textContent = errors.length;
+
+  document.getElementById('stats-bar').style.display = 'flex';
+
+  renderTimetable();
+  renderCourseList();
+
+  document.getElementById('import-panel').style.display   = 'none';
+  document.getElementById('timetable-wrap').style.display = 'block';
+  if (listOpen) document.getElementById('course-list-wrap').style.display = 'block';
+
+  document.getElementById('btn-list').style.display    = 'inline-flex';
+  document.getElementById('btn-reload').style.display  = 'inline-flex';
+  document.getElementById('btn-reload2').style.display = 'inline-flex';
+  document.getElementById('btn-clear').style.display   = 'inline-flex';
+
+  startTick();
+}
+
+/* ─────────────────────────────────────────────
+   RENDER TIMETABLE  ── today only ──
+───────────────────────────────────────────── */
+function renderTimetable() {
+  const today = todayKey();
+  const noToday = document.getElementById('no-today');
+  const tbl     = document.getElementById('timetable');
+
+  // Collect today's courses
+  const todayCourses = today
+    ? courses.filter(c => c.slots.some(s => s.day===today))
+    : [];
+
+  if (!today || !todayCourses.length) {
+    tbl.style.display = 'none';
+    noToday.style.display = 'block';
+    document.getElementById('no-today-day').textContent =
+      today ? DAY_JA[today]+'曜日' : '本日（土日）';
+    document.getElementById('next-banner').style.display = 'none';
+    return;
+  }
+
+  tbl.style.display = '';
+  noToday.style.display = 'none';
+
+  // Build grid: period → courses
+  const grid = {};
+  PERIODS.forEach(p => { grid[p] = []; });
+  todayCourses.forEach(c => {
+    c.slots.filter(s=>s.day===today).forEach(s => {
+      if (grid[s.period] !== undefined) grid[s.period].push(c);
+    });
+  });
+
+  const nm = nowMin();
+  tbl.innerHTML = '';
+
+  // ── thead ──
+  const thead = document.createElement('thead');
+  const hrow  = document.createElement('tr');
+  const th0   = document.createElement('th');
+  th0.className   = 'col-time';
+  th0.textContent = '時限';
+  hrow.appendChild(th0);
+
+  const th1 = document.createElement('th');
+  th1.className   = 'col-day today-hdr';
+  th1.textContent = `${DAY_JA[today]}曜日`;
+  hrow.appendChild(th1);
+
+  thead.appendChild(hrow);
+  tbl.appendChild(thead);
+
+  // ── tbody ──
+  const tbody = document.createElement('tbody');
+  PERIODS.forEach(p => {
+    // Skip periods with no course AND that are in the past
+    // (still show current and future empty slots for context)
+    const cs   = grid[p];
+    const ps   = PERIOD_START_MIN[p];
+    const pe   = periodEndMin(p);
+    const isNow   = nm >= ps && nm <= pe;
+    const isBrk   = isBreak(p) && nm > pe && nm < (PERIOD_START_MIN[p+1]||Infinity);
+    const isPast  = nm > pe && !isNow;
+
+    // Always show periods that have a course; skip empty past periods
+    if (cs.length === 0 && isPast) return;
+
+    const tr = document.createElement('tr');
+    tr.dataset.period = p;
+
+    // time cell
+    const td0 = document.createElement('td');
+    td0.className = 'col-time' + (isNow ? ' is-now' : isBrk ? ' is-break' : '');
+    td0.dataset.timecell = p;
+    const numCls = isNow ? ' active-num' : '';
+    td0.innerHTML = `
+      <div class="time-label">
+        <span class="time-num${numCls}">${p}</span>
+        <span class="time-start">${periodStartStr(p)}</span>
+        <span class="time-end">${periodEndStr(p)}</span>
+      </div>`;
+    tr.appendChild(td0);
+
+    // course cell
+    const td1 = document.createElement('td');
+    td1.className = 'col-day';
+    if (cs.length > 1) {
+      const wrap = document.createElement('div');
+      wrap.className = 'cell-multi';
+      cs.forEach(c => wrap.appendChild(makeCard(c, isNow)));
+      td1.appendChild(wrap);
+    } else if (cs.length === 1) {
+      td1.appendChild(makeCard(cs[0], isNow));
+    }
+    tr.appendChild(td1);
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+/* Re-apply period highlights without full re-render */
+function rerenderPeriodHighlights() {
+  const nm  = nowMin();
+  document.querySelectorAll('[data-timecell]').forEach(td => {
+    const p   = parseInt(td.dataset.timecell);
+    const ps  = PERIOD_START_MIN[p];
+    const pe  = periodEndMin(p);
+    const now = nm >= ps && nm <= pe;
+    const brk = isBreak(p) && nm > pe && nm < (PERIOD_START_MIN[p+1]||Infinity);
+    td.className = 'col-time' + (now ? ' is-now' : brk ? ' is-break' : '');
+    const numEl = td.querySelector('.time-num');
+    if (numEl) numEl.className = 'time-num' + (now ? ' active-num' : '');
+    // toggle card glow
+    const row  = td.closest('tr');
+    if (row) row.querySelectorAll('.course-card').forEach(card => {
+      card.classList.toggle('card-active', now);
+    });
+  });
+}
+
+function makeCard(c, isActive) {
+  const key  = c.code||c.name;
+  const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
+  const card = document.createElement('div');
+  card.className = `course-card cc-${ci}${isActive?' card-active':''}`;
+  const loc = buildLoc(c);
+  card.innerHTML = `
+    <div class="cn">${esc(c.name)}</div>
+    <div class="cm">
+      <span class="cm-teacher">${esc(c.teacher||'—')}</span>
+      ${loc ? `<span class="cm-room">📍${esc(loc)}</span>` : ''}
+    </div>`;
+  card.onclick = () => openModal(c);
+  return card;
+}
+
+/* ─────────────────────────────────────────────
+   COURSE LIST (all courses)
+───────────────────────────────────────────── */
+function renderCourseList() {
+  const tbody = document.getElementById('course-tbody');
+  tbody.innerHTML = '';
+  courses.forEach(c => {
+    const key  = c.code||c.name;
+    const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
+    const col  = PALETTE[ci];
+    const loc  = buildLoc(c) || '—';
+    const slot = c.slots.map(s=>`${DAY_JA[s.day]}曜${s.period}限`).join('、') || c.timeRaw || '—';
+    const tr   = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="badge badge-code">${esc(c.code||'—')}</span></td>
+      <td style="display:flex;align-items:center">
+        <span class="dot" style="background:${col}"></span>${esc(c.name)}
+      </td>
+      <td>${esc(c.teacher||'—')}</td>
+      <td>${esc(slot)}</td>
+      <td>${esc(loc)}</td>
+      <td><span class="badge badge-credit">${c.credits}単位</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  const errWrap = document.getElementById('err-box-wrap');
+  errWrap.innerHTML = '';
+  if (errors.length) {
+    const box = document.createElement('div');
+    box.className = 'err-box';
+    errors.forEach(e => {
+      const d = document.createElement('div');
+      d.textContent = '⚠️ ' + e; box.appendChild(d);
+    });
+    errWrap.appendChild(box);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────── */
+function openModal(c) {
+  const key  = c.code||c.name;
+  const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
+  const col  = PALETTE[ci];
+  const loc  = buildLoc(c) || '—';
+  const slot = c.slots
+    .map(s=>`${DAY_JA[s.day]}曜日 ${s.period}限 (${periodStartStr(s.period)}〜${periodEndStr(s.period)})`)
+    .join('\n') || c.timeRaw || '—';
+
+  document.getElementById('m-bar').style.background = col;
+  const codeEl = document.getElementById('m-code');
+  codeEl.textContent = c.code||'—';
+  codeEl.style.cssText = `background:${col}22;color:${col};border:1px solid ${col}55`;
+  document.getElementById('m-name').textContent = c.name;
+
+  const unknown = isUnknown(c);
+  const bldStr  = unknown ? '教室不定' : (c.building ? c.building+'棟' : '—');
+  const fmKey   = getFloorKey(c);
+
+  const items = [
+    { lbl:'担当者',  val: c.teacher||'未設定', full:false },
+    { lbl:'単位数',  val: c.credits?`${c.credits} 単位`:'—', full:false },
+    { lbl:'開講時間',val: slot, full:true },
+    { lbl:'建物',    val: bldStr, full:false },
+    { lbl:'教室',    val: unknown ? '教室不定' : (c.room||'—'), full:false },
+  ];
+
+  const grid = document.getElementById('m-grid');
+  grid.innerHTML = items.map(it=>`
+    <div class="modal-item${it.full?' full':''}">
+      <div class="modal-lbl">${it.lbl}</div>
+      <div class="modal-val" style="white-space:pre-line">${esc(it.val)}</div>
+    </div>`).join('');
+
+  // Floor map button
+  const fmWrap = document.getElementById('m-floormap');
+  if (fmKey && !unknown) {
+    fmWrap.style.display = 'block';
+    document.getElementById('m-floormap-btn').onclick =
+      () => openFloorMap(fmKey, c.name, c.room);
+    document.getElementById('m-floormap-label').textContent =
+      `${fmKey} フロアマップを表示`;
+  } else {
+    fmWrap.style.display = 'none';
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal()    { document.getElementById('modal-overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target.id==='modal-overlay') closeModal(); }
+
+/* ─────────────────────────────────────────────
+   UI HELPERS
+───────────────────────────────────────────── */
+function toggleList() {
+  listOpen = !listOpen;
+  document.getElementById('course-list-wrap').style.display = listOpen ? 'block' : 'none';
+  document.getElementById('btn-list').textContent = listOpen ? '📅 時間割' : '📋 一覧';
+}
+function clearAll() {
+  courses = []; colorMap = {}; errors = []; listOpen = false; lastSrc = '';
+  clearInterval(_tickTimer);
+  setLoadingState('loading');
+  document.getElementById('import-panel').style.display     = 'block';
+  document.getElementById('timetable-wrap').style.display   = 'none';
+  document.getElementById('course-list-wrap').style.display = 'none';
+  document.getElementById('stats-bar').style.display        = 'none';
+  document.getElementById('next-banner').style.display      = 'none';
+  ['btn-list','btn-reload','btn-reload2','btn-clear'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  document.getElementById('btn-list').textContent = '📋 一覧';
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeFloorMap(); } });
+window.addEventListener('DOMContentLoaded', () => { loadTimeXlsx(); _initTestMode(); });
+</script>
+</body>
+</html>
