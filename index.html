@@ -1271,6 +1271,23 @@ main {
 }
 #btn-show-done:hover { border-color:var(--accent); color:var(--accent); }
 
+.cs-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.cs-info-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  transition: background var(--t), border-color var(--t);
+}
+.cs-info-item.full { grid-column: 1 / -1; }
+.cs-info-lbl { font-size: 0.625rem; color: var(--text-muted); margin-bottom: 0.2rem; letter-spacing: 0.04em; }
+.cs-info-val { font-size: 0.8125rem; color: var(--text); white-space: pre-line; }
+
 .cs-takers-box {
   display: flex; align-items: baseline; gap: 0.375rem;
   background: var(--surface2); border: 1px solid var(--border);
@@ -1635,10 +1652,14 @@ main {
 
 <!-- ═══ 講義設定モーダル（追加・変更・削除） ═══ -->
 <div id="course-switch-overlay" class="simple-overlay" onclick="if(event.target===this)closeCourseSwitch()">
-  <div class="simple-modal">
+  <div class="simple-modal" style="width:min(28rem,100%)">
     <button class="modal-close" onclick="closeCourseSwitch()">✕</button>
     <div class="simple-modal-title" id="cs-title">講義の設定</div>
     <div class="simple-modal-body">
+      <!-- 現在の講義情報カード -->
+      <div id="cs-info-card" style="display:none">
+        <div class="cs-info-grid" id="cs-info-grid"></div>
+      </div>
       <!-- 受講者数 -->
       <div id="cs-takers-row" style="display:none">
         <div class="cs-takers-box">
@@ -2351,57 +2372,123 @@ function countTakers(courseName) {
 
 let _csSwitchContext = null; // { day, period, candidates, isEmpty }
 
-function openCourseSwitchModal(day, period, candidates, isEmpty) {
-  _csSwitchContext = { day, period, candidates: candidates || [], isEmpty: !!isEmpty };
+// 指定講義の情報グリッドHTMLを生成
+function buildCsInfoGrid(c) {
+  if (!c) return '';
+  const unknown = isUnknown(c);
+  const loc     = buildLoc(c) || '—';
+  const locShort= buildLocShort(c) || '—';
+  const slot    = c.slots
+    .map(s=>`${DAY_JA[s.day]}曜日 ${s.period}限 (${periodStartStr(s.period)}〜${periodEndStr(s.period)})`)
+    .join('\n') || c.timeRaw || '—';
+  const bldStr  = unknown ? '教室不定' : (c.building ? c.building+'棟' : '—');
+  const takers  = countTakers(c.name);
 
-  const locked = isEditLocked();
-  const isAdd  = isEmpty || (!candidates || candidates.length === 0);
+  const items = [
+    { lbl:'担当者',   val: c.teacher||'未設定', full:false },
+    { lbl:'単位数',   val: c.credits ? `${c.credits} 単位` : '—', full:false },
+    { lbl:'開講時間', val: slot,  full:true  },
+    { lbl:'建物',     val: bldStr, full:false },
+    { lbl:'教室',     val: unknown ? '教室不定' : (c.room||'—'), full:false },
+    { lbl:'受講者数', val: `${takers} 人`, full:false },
+  ];
+  return items.map(it => `
+    <div class="cs-info-item${it.full?' full':''}">
+      <div class="cs-info-lbl">${it.lbl}</div>
+      <div class="cs-info-val">${esc(it.val)}</div>
+    </div>`).join('');
+}
+
+function openCourseSwitchModal(day, period, candidates, isEmpty) {
+  // 同じ曜日・時限を持つ全講義をプール（Excelデータ準拠）
+  const allSameSlot = courses.filter(c => c.slots.some(s => s.day===day && s.period===period));
+
+  _csSwitchContext = { day, period, candidates: allSameSlot, isEmpty: !!isEmpty };
+
+  const locked  = isEditLocked();
+  // 現在表示中の講義を特定
+  const ov      = getOverrides()[`${day}:${period}`];
+  let current   = null;
+  if (ov && ov.type === 'switch') {
+    current = allSameSlot.find(c => c.name === ov.courseName) || null;
+  } else if (ov && ov.type === 'hide') {
+    current = null; // 非表示中
+  } else {
+    current = allSameSlot.length > 0 ? allSameSlot[0] : null;
+  }
+
+  const isCurrentEmpty = !current; // 現在空きコマ
 
   document.getElementById('cs-title').textContent =
-    isAdd ? `${DAY_JA[day]}曜 ${period}限 — 講義を追加` : `${DAY_JA[day]}曜 ${period}限 — 講義の設定`;
+    `${DAY_JA[day]}曜 ${period}限 — 講義の設定`;
 
-  // 受講者数表示（追加モード以外、かつ候補が存在するとき）
+  // 講義情報カード
+  const infoCard = document.getElementById('cs-info-card');
+  const infoGrid = document.getElementById('cs-info-grid');
+  if (current) {
+    infoGrid.innerHTML = buildCsInfoGrid(current);
+    infoCard.style.display = 'block';
+  } else {
+    infoCard.style.display = 'none';
+  }
+
+  // 受講者数（現在の講義がある場合）
   const takersRow = document.getElementById('cs-takers-row');
-  if (!isAdd && candidates && candidates.length > 0) {
-    const ov = getOverrides()[`${day}:${period}`];
-    let current = candidates[0];
-    if (ov && ov.type === 'switch') {
-      current = candidates.find(c => c.name === ov.courseName) || candidates[0];
-    }
-    const count = countTakers(current.name);
-    document.getElementById('cs-takers-count').textContent = count;
+  if (current) {
+    document.getElementById('cs-takers-count').textContent = countTakers(current.name);
     takersRow.style.display = 'block';
   } else {
     takersRow.style.display = 'none';
   }
 
-  // セレクト候補構築
+  // セレクト構築: None + 同一時限の全講義（講師名付き）
   const sel = document.getElementById('cs-select');
   sel.innerHTML = '';
-  const pool = isAdd
-    ? courses.filter(c => c.slots.some(s => s.day===day && s.period===period))
-    : (candidates || []);
 
-  if (isAdd && pool.length === 0) {
-    // この時限に登録できる講義がない
+  // None オプション（空きコマにする）
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '__none__';
+  noneOpt.textContent = '— None（空きコマ）—';
+  sel.appendChild(noneOpt);
+
+  if (allSameSlot.length === 0) {
     document.getElementById('cs-select-label').textContent = '候補の講義';
-    const opt = document.createElement('option');
-    opt.textContent = '（この時限に講義がありません）';
-    opt.disabled = true;
-    sel.appendChild(opt);
+    noneOpt.textContent = '（この時限に講義がありません）';
   } else {
-    document.getElementById('cs-select-label').textContent = isAdd ? '追加する講義' : '表示する講義';
-    pool.forEach(c => {
+    document.getElementById('cs-select-label').textContent = '表示する講義';
+    allSameSlot.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = c.name; opt.textContent = c.name;
+      opt.value = c.name;
+      // 講師名を含めた表示
+      const teacherPart = c.teacher ? ` ／ ${c.teacher}` : '';
+      opt.textContent = `${c.name}${teacherPart}`;
       sel.appendChild(opt);
     });
-    // 現在の選択を反映（変更モードのみ）
-    if (!isAdd) {
-      const ov = getOverrides()[`${day}:${period}`];
-      if (ov && ov.type === 'switch') sel.value = ov.courseName;
-    }
   }
+
+  // 現在値をセット
+  if (current) {
+    sel.value = current.name;
+  } else {
+    sel.value = '__none__';
+  }
+
+  // セレクト変更時: 情報カード・受講者数をリアルタイム更新
+  sel.onchange = () => {
+    const name = sel.value;
+    if (name === '__none__') {
+      document.getElementById('cs-info-card').style.display = 'none';
+      document.getElementById('cs-takers-row').style.display = 'none';
+    } else {
+      const chosen = allSameSlot.find(c => c.name === name);
+      if (chosen) {
+        document.getElementById('cs-info-grid').innerHTML = buildCsInfoGrid(chosen);
+        document.getElementById('cs-info-card').style.display = 'block';
+        document.getElementById('cs-takers-count').textContent = countTakers(chosen.name);
+        document.getElementById('cs-takers-row').style.display = 'block';
+      }
+    }
+  };
 
   // ボタン表示制御
   const actionBtns = document.getElementById('cs-action-btns');
@@ -2415,17 +2502,10 @@ function openCourseSwitchModal(day, period, candidates, isEmpty) {
   } else {
     actionBtns.style.display = 'block';
     lockedMsg.style.display  = 'none';
-    changeBtn.textContent = isAdd ? '追加' : '変更';
-    deleteBtn.style.display = isAdd ? 'none' : 'block';
+    changeBtn.textContent    = '変更';
+    // None 選択時は「非表示」ボタンを隠す（Noneを選んで変更ボタンで代用）
+    deleteBtn.style.display  = 'block';
   }
-
-  // セレクト変更時に受講者数をリアルタイム更新
-  sel.onchange = () => {
-    const name = sel.value;
-    if (name && document.getElementById('cs-takers-row').style.display !== 'none') {
-      document.getElementById('cs-takers-count').textContent = countTakers(name);
-    }
-  };
 
   document.getElementById('course-switch-overlay').classList.add('open');
 }
@@ -2438,15 +2518,24 @@ function applyCourseSwitchChange() {
   if (!_csSwitchContext) return;
   const { day, period, isEmpty } = _csSwitchContext;
   const name = document.getElementById('cs-select').value;
-  if (!name) return;
   const ov = getOverrides();
-  ov[`${day}:${period}`] = { type:'switch', courseName: name };
-  saveOverrides(ov);
-  renderTimetable();
-  renderCourseList();
-  const msg = isEmpty ? '➕ 講義を追加しました' : '📅 表示する講義を変更しました';
-  closeCourseSwitch();
-  showToast(msg);
+  if (name === '__none__') {
+    ov[`${day}:${period}`] = { type:'hide' };
+    saveOverrides(ov);
+    renderTimetable();
+    renderCourseList();
+    closeCourseSwitch();
+    showToast('🙈 この時限を空きコマにしました');
+  } else {
+    if (!name) return;
+    ov[`${day}:${period}`] = { type:'switch', courseName: name };
+    saveOverrides(ov);
+    renderTimetable();
+    renderCourseList();
+    const msg = isEmpty ? '➕ 講義を追加しました' : '📅 表示する講義を変更しました';
+    closeCourseSwitch();
+    showToast(msg);
+  }
 }
 function applyCourseDelete() {
   if (!_csSwitchContext) return;
@@ -3036,12 +3125,11 @@ function renderWeek(tbl, noToday, today) {
       if (resolved) {
         td.appendChild(makeCard(resolved, isNow && d === today, d, p, cs));
       } else {
-        // 空セル: この曜日×時限に候補がある（非表示設定）か、
-        // あるいは全く講義がない場合でもタップで追加モーダルへ
+        // 空セル: 同一時限に候補があればモーダルを開く
         const hasCandidates = courses.some(c => c.slots.some(s => s.day===d && s.period===p));
-        if (hasCandidates || !isEditLocked()) {
+        if (hasCandidates) {
           td.classList.add('cell-empty-clickable');
-          td.onclick = () => openCourseSwitchModal(d, p, cs, true);
+          td.onclick = () => openCourseSwitchModal(d, p, [], true);
         }
       }
       tr.appendChild(td);
@@ -3130,12 +3218,8 @@ function renderDay(tbl, noToday, today) {
     const resolved = resolveDisplayCourse(today, p, cs);
     if (resolved) {
       td1.appendChild(makeCard(resolved, isNow, today, p, cs));
-    } else if (cs.length > 0) {
-      // 非表示設定の空セル
-      td1.classList.add('cell-empty-clickable');
-      td1.onclick = () => openCourseSwitchModal(today, p, cs, true);
     } else {
-      // 全く講義がない空セル
+      // 空セル（非表示設定、または全く候補なし）
       const hasCandidates = courses.some(c => c.slots.some(s => s.day===today && s.period===p));
       if (hasCandidates) {
         td1.classList.add('cell-empty-clickable');
