@@ -347,21 +347,22 @@ main {
   transition: background var(--t), border-color var(--t);
 }
 .tt-scroll { overflow-x: auto; }
-.timetable { width: 100%; border-collapse: collapse; min-width: 26.25rem; }
+.timetable { width: 100%; border-collapse: collapse; min-width: 26.25rem; table-layout: fixed; }
 
 .timetable thead th {
   background: var(--surface2); height: 2.75rem;
-  padding: 0 0.75rem; font-size: 0.75rem; font-weight: 500;
+  padding: 0 0.5rem; font-size: 0.75rem; font-weight: 500;
   letter-spacing: 0.05em; color: var(--text-muted); text-align: center;
   border-bottom: 1px solid var(--border);
-  transition: background var(--t); white-space: nowrap;
+  transition: background var(--t); white-space: nowrap; overflow: hidden;
 }
 .timetable thead th.col-time {
   width: var(--time-col); border-right: 1px solid var(--border);
   font-family: 'DM Mono', monospace;
   position: sticky; left: 0; z-index: 5;
 }
-.timetable thead th.col-day { min-width: 12.5rem; }
+/* 曜日列: table-layout:fixed により残り幅を均等分配、min-width は不要 */
+.timetable thead th.col-day { /* width は table が自動計算 */ }
 .timetable thead th.today-hdr { color: var(--accent); }
 
 .timetable tbody td {
@@ -713,28 +714,36 @@ main {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  z-index: 400;
+  z-index: 9999;           /* modal(300)・header(200)・testpanel(9000) より上 */
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 1.25rem;
+  overflow: auto;
 }
-#floormap-overlay.open { display: flex; }
+#floormap-overlay.open {
+  display: flex;
+  /* flex で中央揃え確実に */
+  align-items: center;
+  justify-content: center;
+}
 
 #floormap-modal {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1.125rem;
   width: min(45rem, 100%);
-  max-height: 90vh;
+  max-height: calc(100vh - 2.5rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 2rem 5rem rgba(0,0,0,0.55);
+  box-shadow: 0 2rem 5rem rgba(0,0,0,0.6);
   animation: modalIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
   transition: background var(--t), border-color var(--t);
+  position: relative;      /* ×ボタンの absolute 基準 */
+  flex-shrink: 0;
 }
 
 #fm-header {
@@ -847,6 +856,8 @@ main {
   #btn-list::before { content: '📋'; font-size: 1rem; }
   #btn-view::before { content: '📅'; font-size: 1rem; }
   #btn-reload2 { display: none !important; }
+  .user-chip { font-size: 0.6875rem; padding: 0.3125rem 0.5rem; }
+  #btn-logout { font-size: 0.6875rem; padding: 0.3125rem 0.5rem; }
   .theme-toggle { flex-shrink: 0; }
 
   /* Banner */
@@ -948,6 +959,137 @@ main {
   header { padding: 0 0.5rem; }
 }
 
+/* ═══════════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════════ */
+#login-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  transition: background var(--t);
+}
+#login-screen.active { display: flex; }
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 2.5rem 2rem;
+  width: min(24rem, 100%);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: modalIn 0.28s cubic-bezier(0.34,1.4,0.64,1);
+}
+.login-logo {
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  background: linear-gradient(130deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.25rem;
+}
+.login-sub {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: -0.75rem;
+}
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.login-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+}
+.login-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, background var(--t);
+  width: 100%;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-input::placeholder { color: var(--text-muted); }
+.login-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.8125rem;
+  font-size: 0.9375rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+.login-btn:hover  { background: #8f7fff; transform: translateY(-1px); }
+.login-btn:active { transform: none; }
+.login-err {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  text-align: center;
+  min-height: 1.2em;
+}
+.login-register-link {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.login-register-link button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  text-decoration: underline;
+  padding: 0;
+}
+/* ログアウトボタン */
+#btn-logout {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+#btn-logout:hover { color: var(--danger); border-color: var(--danger); }
+/* ユーザー表示 */
+.user-chip {
+  display: none;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-family: 'DM Mono', monospace;
+  color: var(--text-muted);
+  padding: 0.375rem 0.75rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  white-space: nowrap;
+}
+
 /* ── TOAST / MISC ── */
 #toast {
   position:fixed; bottom:1.75rem; left:50%;
@@ -968,12 +1110,47 @@ main {
 </head>
 <body>
 
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+  <div class="login-card" id="login-card">
+    <!-- ログイン / 登録 を JS で切り替え -->
+    <div class="login-logo">CAMPUS</div>
+    <div class="login-sub" id="login-mode-label">学籍番号でログイン</div>
+
+    <div class="login-field">
+      <label class="login-label" for="inp-id">学籍番号</label>
+      <input class="login-input" id="inp-id" type="text"
+        placeholder="例: 24A1234" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('inp-pw').focus()">
+    </div>
+    <div class="login-field">
+      <label class="login-label" for="inp-pw">パスワード</label>
+      <input class="login-input" id="inp-pw" type="password"
+        placeholder="パスワードを入力"
+        autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')loginSubmit()">
+    </div>
+
+    <div class="login-err" id="login-err"></div>
+
+    <button class="login-btn" id="login-submit-btn" onclick="loginSubmit()">ログイン</button>
+
+    <div class="login-register-link">
+      初めて使う場合は
+      <button onclick="switchLoginMode()">新規登録</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ HEADER ═══ -->
 <header>
   <div class="logo">CAMPUS <span>時間割</span></div>
   <div class="header-right">
     <button class="btn btn-ghost" id="btn-list"   style="display:none" onclick="toggleList()">📋 一覧</button>
     <button class="btn btn-ghost" id="btn-view"   style="display:none" onclick="toggleView()">📅 週表示</button>
+    <div class="hdr-sep" id="sep-user" style="display:none"></div>
+    <span class="user-chip" id="user-chip">👤 <span id="user-id-display"></span></span>
+    <button class="btn btn-ghost" id="btn-logout" style="display:none" onclick="doLogout()">ログアウト</button>
     <div class="hdr-sep"></div>
     <div class="theme-toggle" onclick="toggleTheme()" title="ライト/ダーク切替">
       <span class="theme-icon icon-moon">🌙</span>
@@ -1649,22 +1826,30 @@ function getFloorKey(c) {
    FLOOR MAP MODAL
 ───────────────────────────────────────────── */
 function openFloorMap(key, courseName, room) {
-  // モーダルが開いている場合は先に閉じる（z-index 競合防止）
-  closeModal();
+  // 1) まずモーダルを確実に閉じる
+  document.getElementById('modal-overlay').classList.remove('open');
 
+  // 2) タイトルをセット
   document.getElementById('fm-title').textContent = `${key} フロアマップ`;
-  document.getElementById('fm-sub').textContent   = `${courseName}（${room}）`;
+  document.getElementById('fm-sub').textContent   = `${courseName}  ${room}号室`;
 
-  const img = document.getElementById('fm-img');
-  // src を一旦空にしてから再セット（同じsrcでも再読み込みさせる）
-  img.src = '';
+  // 3) fm-body を毎回リセット（onerror でDOMが書き換わっても確実に img を再生成）
+  const body = document.getElementById('fm-body');
+  body.innerHTML = '';
+  const img = document.createElement('img');
+  img.id  = 'fm-img';
   img.alt = key + '.png';
-  // 非同期で確実にセット
-  requestAnimationFrame(() => {
-    img.src = floorMapSrc(key);
-  });
+  img.style.cssText = 'max-width:100%;max-height:calc(90vh - 7.5rem);border-radius:0.5rem;object-fit:contain;display:block;';
+  img.onerror = function() {
+    body.innerHTML = `<div class="fm-err">画像が見つかりません<br><small>${this.alt} を同フォルダに配置してください</small></div>`;
+  };
+  img.src = floorMapSrc(key);
+  body.appendChild(img);
 
-  document.getElementById('floormap-overlay').classList.add('open');
+  // 4) モーダルが閉じた次のフレームでオーバーレイを開く
+  requestAnimationFrame(() => {
+    document.getElementById('floormap-overlay').classList.add('open');
+  });
 }
 function closeFloorMap() {
   document.getElementById('floormap-overlay').classList.remove('open');
@@ -2187,17 +2372,152 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeFloorMap(); } });
-window.addEventListener('DOMContentLoaded', () => { loadTimeXlsx(); _initTestMode(); });
+/* ─────────────────────────────────────────────
+   LOGIN  —  localStorage にハッシュ保存
+   キー: campus_users  { [id]: { hash, salt } }
+       campus_session { id }
+───────────────────────────────────────────── */
+const AUTH_KEY    = 'campus_users';
+const SESSION_KEY = 'campus_session';
+let loginMode = 'login'; // 'login' | 'register'
 
-// ウィンドウサイズ変更時: localStorage override がなければデバイスデフォルトに追従
+// Web Crypto API で SHA-256 ハッシュ生成
+async function sha256(str) {
+  const buf  = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem(AUTH_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveUsers(u) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify(u));
+}
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }
+  catch { return null; }
+}
+function saveSession(id) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ id }));
+}
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function switchLoginMode() {
+  loginMode = loginMode === 'login' ? 'register' : 'login';
+  const isReg = loginMode === 'register';
+  document.getElementById('login-mode-label').textContent =
+    isReg ? '新規アカウント登録' : '学籍番号でログイン';
+  document.getElementById('login-submit-btn').textContent =
+    isReg ? '登録してログイン' : 'ログイン';
+  document.querySelector('.login-register-link').innerHTML = isReg
+    ? '既にアカウントがある場合は <button onclick="switchLoginMode()">ログイン</button>'
+    : '初めて使う場合は <button onclick="switchLoginMode()">新規登録</button>';
+  document.getElementById('login-err').textContent = '';
+}
+
+async function loginSubmit() {
+  const id = document.getElementById('inp-id').value.trim();
+  const pw = document.getElementById('inp-pw').value;
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+
+  if (!id) { err.textContent = '学籍番号を入力してください'; return; }
+  if (!pw)  { err.textContent = 'パスワードを入力してください'; return; }
+
+  // 学籍番号の簡易バリデーション（英数字のみ）
+  if (!/^[A-Za-z0-9]+$/.test(id)) {
+    err.textContent = '学籍番号は英数字のみで入力してください';
+    return;
+  }
+
+  const users = getUsers();
+  const hash  = await sha256(id + ':' + pw); // id を salt 代わりに使用
+
+  if (loginMode === 'register') {
+    if (users[id]) {
+      err.textContent = 'この学籍番号は既に登録されています';
+      return;
+    }
+    users[id] = { hash };
+    saveUsers(users);
+    saveSession(id);
+    onLoginSuccess(id);
+  } else {
+    const user = users[id];
+    if (!user) {
+      err.textContent = '学籍番号が見つかりません。新規登録してください';
+      return;
+    }
+    if (user.hash !== hash) {
+      err.textContent = 'パスワードが正しくありません';
+      return;
+    }
+    saveSession(id);
+    onLoginSuccess(id);
+  }
+}
+
+function onLoginSuccess(id) {
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('inp-pw').value = '';
+  document.getElementById('login-err').textContent = '';
+  // ヘッダーにユーザー表示
+  document.getElementById('user-id-display').textContent = id;
+  document.getElementById('user-chip').style.display  = 'inline-flex';
+  document.getElementById('btn-logout').style.display = 'inline-flex';
+  document.getElementById('sep-user').style.display   = 'block';
+  // データ読み込み開始
+  loadTimeXlsx();
+}
+
+function doLogout() {
+  clearSession();
+  // UI リセット
+  document.getElementById('user-chip').style.display  = 'none';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('sep-user').style.display   = 'none';
+  document.getElementById('btn-list').style.display   = 'none';
+  document.getElementById('btn-view').style.display   = 'none';
+  document.getElementById('btn-reload2').style.display= 'none';
+  document.getElementById('timetable-wrap').style.display   = 'none';
+  document.getElementById('course-list-wrap').style.display = 'none';
+  document.getElementById('stats-bar').style.display        = 'none';
+  document.getElementById('next-banner').style.display      = 'none';
+  document.getElementById('import-panel').style.display     = 'none';
+  loginMode = 'login';
+  switchLoginMode(); // ラベルをリセット
+  loginMode = 'login';
+  document.getElementById('login-screen').classList.add('active');
+}
+
+function initAuth() {
+  const session = getSession();
+  if (session && session.id) {
+    const users = getUsers();
+    if (users[session.id]) {
+      // セッション有効 → そのままロード
+      onLoginSuccess(session.id);
+      return;
+    }
+  }
+  // 未ログイン → ログイン画面を表示
+  document.getElementById('login-screen').classList.add('active');
+}
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeFloorMap(); } });
+window.addEventListener('DOMContentLoaded', () => { initAuth(); _initTestMode(); });
+
+// リサイズ時の再描画（localStorage override がなければデバイスデフォルトに追従）
 let _resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
-    if (!localStorage.getItem('campus-view') && courses.length) {
-      renderTimetable();
-    }
+    if (!localStorage.getItem('campus-view') && courses.length) renderTimetable();
   }, 200);
 });
 </script>
