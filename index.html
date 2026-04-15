@@ -413,6 +413,38 @@ main {
 .cm { display: flex; align-items: center; gap: 0.3125rem; font-size: 0.6562rem; color: var(--text-muted); overflow: hidden; white-space: nowrap; }
 .cm-teacher { overflow: hidden; text-overflow: ellipsis; }
 .cm-room    { font-family: 'DM Mono', monospace; font-size: 0.625rem; margin-left: auto; flex-shrink: 0; }
+/* 週表示用: 教室を最下部中央に */
+.cm-room-week {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.5875rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: auto;
+  padding-top: 0.125rem;
+  letter-spacing: 0.03em;
+  opacity: 0.8;
+}
+.card-week {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 空セル (クリック可能) */
+.cell-empty-clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cell-empty-clickable:hover {
+  background: rgba(124,106,247,0.06) !important;
+}
+.cell-empty-clickable:hover::after {
+  content: '+';
+  display: block;
+  text-align: center;
+  font-size: 1.25rem;
+  color: var(--border2);
+  margin-top: 0.5rem;
+}
 
 /* glow on active period card */
 .course-card.card-active {
@@ -489,6 +521,19 @@ main {
 ═══════════════════════════════════════════════ */
 #course-list-wrap { display:none; margin-top:1.5rem; }
 .sec-title { font-size:0.6875rem; font-weight:500; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.875rem; }
+
+/* 折りたたみトグルボタン */
+.course-list-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: none; border: none; cursor: pointer;
+  padding: 0 0 0.875rem; text-align: left;
+}
+.course-list-toggle:hover .sec-title { color: var(--accent); }
+
+/* 授業名セルのズレ防止 */
+.course-name-cell {
+  display: flex; align-items: center; gap: 0.4375rem;
+}
 .tbl-wrap { border:1px solid var(--border); border-radius:var(--radius-panel); overflow:hidden; box-shadow:var(--shadow); }
 .course-tbl { width:100%; border-collapse:collapse; font-size:0.8125rem; }
 .course-tbl thead th { text-align:left; padding:0.625rem 0.875rem; font-size:0.6875rem; font-weight:500; color:var(--text-muted); letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--surface2); white-space:nowrap; transition:background var(--t); }
@@ -1226,6 +1271,16 @@ main {
 }
 #btn-show-done:hover { border-color:var(--accent); color:var(--accent); }
 
+.cs-takers-box {
+  display: flex; align-items: baseline; gap: 0.375rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 0.5rem; padding: 0.625rem 0.875rem;
+  margin-bottom: 0.25rem;
+}
+.cs-takers-label { font-size: 0.75rem; color: var(--text-muted); flex: 1; }
+.cs-takers-count { font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 600; color: var(--accent); }
+.cs-takers-unit  { font-size: 0.75rem; color: var(--text-muted); }
+
 /* 休日ラベル */
 .holiday-chip {
   font-size:0.6875rem; color:var(--danger); opacity:0.8;
@@ -1341,10 +1396,9 @@ main {
 }
 #hamburger-backdrop.open { display: block; }
 
-/* デスクトップでは hamburger を隠す */
+/* デスクトップでは hamburger を常時表示 */
 @media (min-width: 30.0625rem) {
-  .hamburger-btn { display: none !important; }
-  #hamburger-menu, #hamburger-backdrop { display: none !important; }
+  .hamburger-btn { display: flex; }
 }
 
 /* モバイルでは desktop-only 要素を隠す (JS の display 操作より優先) */
@@ -1511,19 +1565,7 @@ main {
   </div>
 
   <!-- Course list (all) -->
-  <div id="course-list-wrap">
-    <div class="sec-title">全科目一覧</div>
-    <div class="tbl-wrap">
-      <table class="course-tbl">
-        <thead><tr>
-          <th>コード</th><th>授業名</th><th>担当者</th>
-          <th>曜日・時限</th><th>教室</th><th>単位</th>
-        </tr></thead>
-        <tbody id="course-tbody"></tbody>
-      </table>
-    </div>
-    <div id="err-box-wrap"></div>
-  </div>
+  <div id="course-list-wrap"></div>
 </main>
 
 <!-- ═══ 休講設定モーダル (管理者専用) ═══ -->
@@ -1591,18 +1633,34 @@ main {
   </div>
 </div>
 
-<!-- ═══ 講義切替モーダル ═══ -->
+<!-- ═══ 講義設定モーダル（追加・変更・削除） ═══ -->
 <div id="course-switch-overlay" class="simple-overlay" onclick="if(event.target===this)closeCourseSwitch()">
   <div class="simple-modal">
     <button class="modal-close" onclick="closeCourseSwitch()">✕</button>
     <div class="simple-modal-title" id="cs-title">講義の設定</div>
     <div class="simple-modal-body">
+      <!-- 受講者数 -->
+      <div id="cs-takers-row" style="display:none">
+        <div class="cs-takers-box">
+          <span class="cs-takers-label">この講座の受講者</span>
+          <span class="cs-takers-count" id="cs-takers-count">—</span>
+          <span class="cs-takers-unit">人</span>
+        </div>
+      </div>
+      <!-- 講座選択 -->
       <div class="sfield">
-        <label class="slabel">表示する講義に変更</label>
+        <label class="slabel" id="cs-select-label">表示する講義</label>
         <select class="sinput" id="cs-select"></select>
       </div>
-      <button class="ssubmit" onclick="applyCourseSwitchChange()">変更</button>
-      <button class="ssubmit ssubmit-danger" style="margin-top:0.5rem" onclick="applyCourseDelete()">この時限を非表示にする</button>
+      <!-- 変更・追加ボタン（4/26以降非表示） -->
+      <div id="cs-action-btns">
+        <button class="ssubmit" id="cs-change-btn" onclick="applyCourseSwitchChange()">変更</button>
+        <button class="ssubmit ssubmit-danger" id="cs-delete-btn" style="margin-top:0.5rem" onclick="applyCourseDelete()">この時限を非表示にする</button>
+      </div>
+      <!-- 4/26以降の案内 -->
+      <div id="cs-locked-msg" style="display:none;font-size:0.8125rem;color:var(--text-muted);text-align:center;padding:0.5rem 0">
+        ※ 履修変更期間が終了しました
+      </div>
     </div>
   </div>
 </div>
@@ -2241,38 +2299,151 @@ function resolveDisplayCourse(day, period, candidates) {
   return candidates[0]; // デフォルト: 最初のもの
 }
 
-let _csSwitchContext = null; // { day, period, candidates }
+/* ─────────────────────────────────────────────
+   EDIT LOCK: 4/26 以降は変更・削除・追加不可
+───────────────────────────────────────────── */
+function isEditLocked() {
+  const now = TEST.active
+    ? new Date()   // テストモードでも実日付で判定
+    : new Date();
+  // 4月26日 0:00 以降はロック
+  return now >= new Date(now.getFullYear(), 3, 26); // month is 0-indexed
+}
 
-function openCourseSwitchModal(day, period, candidates) {
-  _csSwitchContext = { day, period, candidates };
+/* ─────────────────────────────────────────────
+   受講者数: 全ユーザーのオーバーライドを集計
+───────────────────────────────────────────── */
+function countTakers(courseName) {
+  const users = getUsers(); // { [id]: { hash } }
+  const ids = Object.keys(users);
+  let count = 0;
+  ids.forEach(id => {
+    const key = `campus_co_${id}`;
+    let overrides = {};
+    try { overrides = JSON.parse(localStorage.getItem(key) || '{}'); } catch {}
+    // このユーザーが courseName を表示しているか
+    const DAYS_ALL = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+    let visible = false;
+    DAYS_ALL.forEach(d => {
+      [1,2,3,4,5,6].forEach(p => {
+        const cands = courses.filter(c => c.slots.some(s => s.day===d && s.period===p));
+        if (!cands.length) return;
+        const ov = overrides[`${d}:${p}`];
+        let shown;
+        if (ov) {
+          if (ov.type === 'hide') return;
+          if (ov.type === 'switch') {
+            shown = cands.find(c => c.name === ov.courseName);
+          }
+        } else {
+          shown = cands[0];
+        }
+        if (shown && shown.name === courseName) visible = true;
+      });
+    });
+    if (visible) count++;
+  });
+  return count;
+}
+
+let _csSwitchContext = null; // { day, period, candidates, isEmpty }
+
+function openCourseSwitchModal(day, period, candidates, isEmpty) {
+  _csSwitchContext = { day, period, candidates: candidates || [], isEmpty: !!isEmpty };
+
+  const locked = isEditLocked();
+  const isAdd  = isEmpty || (!candidates || candidates.length === 0);
+
   document.getElementById('cs-title').textContent =
-    `${DAY_JA[day]}曜 ${period}限 — 講義の設定`;
+    isAdd ? `${DAY_JA[day]}曜 ${period}限 — 講義を追加` : `${DAY_JA[day]}曜 ${period}限 — 講義の設定`;
+
+  // 受講者数表示（追加モード以外、かつ候補が存在するとき）
+  const takersRow = document.getElementById('cs-takers-row');
+  if (!isAdd && candidates && candidates.length > 0) {
+    const ov = getOverrides()[`${day}:${period}`];
+    let current = candidates[0];
+    if (ov && ov.type === 'switch') {
+      current = candidates.find(c => c.name === ov.courseName) || candidates[0];
+    }
+    const count = countTakers(current.name);
+    document.getElementById('cs-takers-count').textContent = count;
+    takersRow.style.display = 'block';
+  } else {
+    takersRow.style.display = 'none';
+  }
+
+  // セレクト候補構築
   const sel = document.getElementById('cs-select');
   sel.innerHTML = '';
-  candidates.forEach(c => {
+  const pool = isAdd
+    ? courses.filter(c => c.slots.some(s => s.day===day && s.period===period))
+    : (candidates || []);
+
+  if (isAdd && pool.length === 0) {
+    // この時限に登録できる講義がない
+    document.getElementById('cs-select-label').textContent = '候補の講義';
     const opt = document.createElement('option');
-    opt.value = c.name; opt.textContent = c.name;
+    opt.textContent = '（この時限に講義がありません）';
+    opt.disabled = true;
     sel.appendChild(opt);
-  });
-  // 現在の選択を反映
-  const ov = getOverrides()[`${day}:${period}`];
-  if (ov && ov.type === 'switch') sel.value = ov.courseName;
+  } else {
+    document.getElementById('cs-select-label').textContent = isAdd ? '追加する講義' : '表示する講義';
+    pool.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name; opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+    // 現在の選択を反映（変更モードのみ）
+    if (!isAdd) {
+      const ov = getOverrides()[`${day}:${period}`];
+      if (ov && ov.type === 'switch') sel.value = ov.courseName;
+    }
+  }
+
+  // ボタン表示制御
+  const actionBtns = document.getElementById('cs-action-btns');
+  const lockedMsg  = document.getElementById('cs-locked-msg');
+  const changeBtn  = document.getElementById('cs-change-btn');
+  const deleteBtn  = document.getElementById('cs-delete-btn');
+
+  if (locked) {
+    actionBtns.style.display = 'none';
+    lockedMsg.style.display  = 'block';
+  } else {
+    actionBtns.style.display = 'block';
+    lockedMsg.style.display  = 'none';
+    changeBtn.textContent = isAdd ? '追加' : '変更';
+    deleteBtn.style.display = isAdd ? 'none' : 'block';
+  }
+
+  // セレクト変更時に受講者数をリアルタイム更新
+  sel.onchange = () => {
+    const name = sel.value;
+    if (name && document.getElementById('cs-takers-row').style.display !== 'none') {
+      document.getElementById('cs-takers-count').textContent = countTakers(name);
+    }
+  };
+
   document.getElementById('course-switch-overlay').classList.add('open');
 }
+
 function closeCourseSwitch() {
   document.getElementById('course-switch-overlay').classList.remove('open');
   _csSwitchContext = null;
 }
 function applyCourseSwitchChange() {
   if (!_csSwitchContext) return;
-  const { day, period } = _csSwitchContext;
+  const { day, period, isEmpty } = _csSwitchContext;
   const name = document.getElementById('cs-select').value;
+  if (!name) return;
   const ov = getOverrides();
   ov[`${day}:${period}`] = { type:'switch', courseName: name };
   saveOverrides(ov);
   renderTimetable();
+  renderCourseList();
+  const msg = isEmpty ? '➕ 講義を追加しました' : '📅 表示する講義を変更しました';
   closeCourseSwitch();
-  showToast('📅 表示する講義を変更しました');
+  showToast(msg);
 }
 function applyCourseDelete() {
   if (!_csSwitchContext) return;
@@ -2281,6 +2452,7 @@ function applyCourseDelete() {
   ov[`${day}:${period}`] = { type:'hide' };
   saveOverrides(ov);
   renderTimetable();
+  renderCourseList();
   closeCourseSwitch();
   showToast('🙈 この時限を非表示にしました');
 }
@@ -2465,7 +2637,7 @@ function updateBanner() {
     const c   = inClass.course;
     const p   = inClass.period;
     const rem = periodEndMin(p) - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     bn.classList.add('mode-now');
     pill.textContent   = '授業中';
     label.textContent  = '';
@@ -2478,7 +2650,7 @@ function updateBanner() {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     bn.classList.add('mode-brk');
     pill.textContent   = '休憩中';
     label.textContent  = '次の科目は';
@@ -2491,7 +2663,7 @@ function updateBanner() {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     bn.classList.add('');
     pill.textContent   = 'NEXT';
     label.textContent  = '次の科目は';
@@ -2521,9 +2693,21 @@ function isUnknown(c) {
   return c.building === 'NA' || c.room === 'NA';
 }
 
+// フル表示: 「E棟 202」→ モーダル内などで使用
 function buildLoc(c) {
   if (isUnknown(c)) return '教室不定';
   return [c.building ? c.building+'棟' : '', c.room].filter(Boolean).join(' ');
+}
+
+// 短縮表示: 「E202」→ カード・バナーで使用
+function buildLocShort(c) {
+  if (isUnknown(c)) return '教室不定';
+  const bld  = (c.building || '').toUpperCase();
+  const room = String(c.room || '');
+  if (!bld && !room) return '';
+  if (!bld) return room;
+  if (!room) return bld;
+  return bld + room; // "E" + "202" → "E202"
 }
 
 /*
@@ -2643,7 +2827,7 @@ function updateBanner() {
     const c   = inClass.course;
     const p   = inClass.period;
     const rem = periodEndMin(p) - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     bn.classList.add('mode-now');
     pill.textContent   = '授業中';
     label.textContent  = '';
@@ -2656,7 +2840,7 @@ function updateBanner() {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     bn.classList.add('mode-brk');
     pill.textContent   = '休憩中';
     label.textContent  = '次の科目は';
@@ -2669,7 +2853,7 @@ function updateBanner() {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLoc(c);
+    const locStr = buildLocShort(c);
     pill.textContent   = 'NEXT';
     label.textContent  = '次の科目は';
     courseEl.textContent = c.name;
@@ -2848,6 +3032,14 @@ function renderWeek(tbl, noToday, today) {
       const resolved = resolveDisplayCourse(d, p, cs);
       if (resolved) {
         td.appendChild(makeCard(resolved, isNow && d === today, d, p, cs));
+      } else {
+        // 空セル: この曜日×時限に候補がある（非表示設定）か、
+        // あるいは全く講義がない場合でもタップで追加モーダルへ
+        const hasCandidates = courses.some(c => c.slots.some(s => s.day===d && s.period===p));
+        if (hasCandidates || !isEditLocked()) {
+          td.classList.add('cell-empty-clickable');
+          td.onclick = () => openCourseSwitchModal(d, p, cs, true);
+        }
       }
       tr.appendChild(td);
     });
@@ -2935,6 +3127,17 @@ function renderDay(tbl, noToday, today) {
     const resolved = resolveDisplayCourse(today, p, cs);
     if (resolved) {
       td1.appendChild(makeCard(resolved, isNow, today, p, cs));
+    } else if (cs.length > 0) {
+      // 非表示設定の空セル
+      td1.classList.add('cell-empty-clickable');
+      td1.onclick = () => openCourseSwitchModal(today, p, cs, true);
+    } else {
+      // 全く講義がない空セル
+      const hasCandidates = courses.some(c => c.slots.some(s => s.day===today && s.period===p));
+      if (hasCandidates) {
+        td1.classList.add('cell-empty-clickable');
+        td1.onclick = () => openCourseSwitchModal(today, p, [], true);
+      }
     }
     tr.appendChild(td1);
     tbody.appendChild(tr);
@@ -2974,19 +3177,33 @@ function makeCard(c, isActive, day, period, allCandidates) {
   })();
   const cancelled = day && period && isCancelled(dateStr, String(period));
 
-  card.className = `course-card cc-${ci}${isActive?' card-active':''}${cancelled?' is-cancelled':''}`;
-  const loc = buildLoc(c);
-  card.innerHTML = `
-    ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
-    <div class="cn">${esc(c.name)}</div>
-    <div class="cm">
-      <span class="cm-teacher">${esc(c.teacher||'—')}</span>
-      ${loc ? `<span class="cm-room">📍${esc(loc)}</span>` : ''}
-    </div>`;
+  const isWeek = getView() === 'week';
+  card.className = `course-card cc-${ci}${isActive?' card-active':''}${cancelled?' is-cancelled':''}${isWeek?' card-week':''}`;
+  const locShort = buildLocShort(c);
 
-  // クリック処理: 複数候補がある場合は切替モーダル、単独の場合は通常モーダル
-  if (day && period && allCandidates && allCandidates.length > 1) {
-    card.onclick = () => openCourseSwitchModal(day, period, allCandidates);
+  if (isWeek) {
+    // 週表示: 教室を最下部中央に
+    card.innerHTML = `
+      ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
+      <div class="cn">${esc(c.name)}</div>
+      <div class="cm">
+        <span class="cm-teacher">${esc(c.teacher||'—')}</span>
+      </div>
+      ${locShort ? `<div class="cm-room-week">${esc(locShort)}</div>` : ''}`;
+  } else {
+    // 日表示: 教室を右端に
+    card.innerHTML = `
+      ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
+      <div class="cn">${esc(c.name)}</div>
+      <div class="cm">
+        <span class="cm-teacher">${esc(c.teacher||'—')}</span>
+        ${locShort ? `<span class="cm-room">📍${esc(locShort)}</span>` : ''}
+      </div>`;
+  }
+
+  // クリック処理: 常に設定モーダルを開く（単独でも複数でも）
+  if (day && period) {
+    card.onclick = () => openCourseSwitchModal(day, period, allCandidates || [c], false);
   } else {
     card.onclick = () => openModal(c);
   }
@@ -2994,32 +3211,85 @@ function makeCard(c, isActive, day, period, allCandidates) {
 }
 
 /* ─────────────────────────────────────────────
-   COURSE LIST (all courses)
+   COURSE LIST — 選択中の科目のみ表示・折りたたみ式
 ───────────────────────────────────────────── */
+function getActiveCourses() {
+  // 各 day:period で resolveDisplayCourse を通して表示中の科目のみ抽出
+  const seen = new Set();
+  const result = [];
+  const DAYS_ALL = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+  DAYS_ALL.forEach(d => {
+    [1,2,3,4,5,6].forEach(p => {
+      const cands = courses.filter(c => c.slots.some(s => s.day===d && s.period===p));
+      if (!cands.length) return;
+      const resolved = resolveDisplayCourse(d, p, cands);
+      if (resolved && !seen.has(resolved.name)) {
+        seen.add(resolved.name);
+        result.push(resolved);
+      }
+    });
+  });
+  return result;
+}
+
+let _courseListOpen = false;
+
+function toggleCourseList() {
+  _courseListOpen = !_courseListOpen;
+  const body    = document.getElementById('course-list-body');
+  const chevron = document.getElementById('course-list-chevron');
+  body.style.display    = _courseListOpen ? 'block' : 'none';
+  chevron.textContent   = _courseListOpen ? '▲' : '▼';
+}
+
 function renderCourseList() {
+  const wrap = document.getElementById('course-list-wrap');
+  const active = getActiveCourses();
+
+  // ヘッダー（折りたたみトグル）を毎回再構築
+  wrap.innerHTML = `
+    <button class="course-list-toggle" onclick="toggleCourseList()">
+      <span class="sec-title" style="margin:0">全科目一覧 <span style="font-size:0.6rem;opacity:0.6">(${active.length}科目)</span></span>
+      <span id="course-list-chevron" style="font-size:0.75rem;color:var(--text-muted)">▼</span>
+    </button>
+    <div id="course-list-body" style="display:none">
+      <div class="tbl-wrap">
+        <table class="course-tbl">
+          <thead><tr>
+            <th>コード</th><th>授業名</th><th>担当者</th>
+            <th>曜日・時限</th><th>教室</th><th>単位</th>
+          </tr></thead>
+          <tbody id="course-tbody"></tbody>
+        </table>
+      </div>
+      <div id="err-box-wrap"></div>
+    </div>`;
+
   const tbody = document.getElementById('course-tbody');
-  tbody.innerHTML = '';
-  courses.forEach(c => {
+  active.forEach(c => {
     const key  = c.code||c.name;
     const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
     const col  = PALETTE[ci];
-    const loc  = buildLoc(c) || '—';
+    const loc  = buildLocShort(c) || '—';
     const slot = c.slots.map(s=>`${DAY_JA[s.day]}曜${s.period}限`).join('、') || c.timeRaw || '—';
     const tr   = document.createElement('tr');
+    // 授業名セル: <td> に flex を当てず、内部 div で対応してズレを防ぐ
     tr.innerHTML = `
       <td><span class="badge badge-code">${esc(c.code||'—')}</span></td>
-      <td style="display:flex;align-items:center">
-        <span class="dot" style="background:${col}"></span>${esc(c.name)}
+      <td>
+        <div class="course-name-cell">
+          <span class="dot" style="background:${col};flex-shrink:0"></span>
+          <span>${esc(c.name)}</span>
+        </div>
       </td>
       <td>${esc(c.teacher||'—')}</td>
       <td>${esc(slot)}</td>
-      <td>${esc(loc)}</td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:0.8em">${esc(loc)}</span></td>
       <td><span class="badge badge-credit">${c.credits}単位</span></td>`;
     tbody.appendChild(tr);
   });
 
   const errWrap = document.getElementById('err-box-wrap');
-  errWrap.innerHTML = '';
   if (errors.length) {
     const box = document.createElement('div');
     box.className = 'err-box';
@@ -3028,6 +3298,12 @@ function renderCourseList() {
       d.textContent = '⚠️ ' + e; box.appendChild(d);
     });
     errWrap.appendChild(box);
+  }
+
+  // 前回の開閉状態を維持
+  if (_courseListOpen) {
+    document.getElementById('course-list-body').style.display = 'block';
+    document.getElementById('course-list-chevron').textContent = '▲';
   }
 }
 
@@ -3053,12 +3329,16 @@ function openModal(c) {
   const bldStr  = unknown ? '教室不定' : (c.building ? c.building+'棟' : '—');
   const fmKey   = getFloorKey(c);
 
+  // 受講者数
+  const takers = countTakers(c.name);
+
   const items = [
     { lbl:'担当者',  val: c.teacher||'未設定', full:false },
     { lbl:'単位数',  val: c.credits?`${c.credits} 単位`:'—', full:false },
     { lbl:'開講時間',val: slot, full:true },
     { lbl:'建物',    val: bldStr, full:false },
     { lbl:'教室',    val: unknown ? '教室不定' : (c.room||'—'), full:false },
+    { lbl:'受講者数', val: `${takers} 人`, full:false },
   ];
 
   const grid = document.getElementById('m-grid');
@@ -3250,10 +3530,11 @@ function onLoginSuccess(id) {
   document.getElementById('hmenu-logout').style.display   = 'flex';
   document.getElementById('hmenu-div-danger').style.display = 'block';
   document.getElementById('hmenu-delete').style.display   = 'flex';
-  // 管理者専用メニュー
+  // 管理者専用メニュー（休講・課題追加は4/26以降非表示）
   const adminItems = document.querySelectorAll('.hmenu-admin-only');
+  const showAdmin  = (id === ADMIN_ID) && !isEditLocked();
   adminItems.forEach(el => {
-    el.style.display = (id === ADMIN_ID) ? (el.tagName === 'BUTTON' ? 'flex' : 'block') : 'none';
+    el.style.display = showAdmin ? (el.tagName === 'BUTTON' ? 'flex' : 'block') : 'none';
   });
   // データ読み込み開始
   loadTimeXlsx();
