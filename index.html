@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>時間割 — Campus</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -133,15 +133,16 @@ body::before {
   z-index: 150;
   display: none;
   align-items: center;
-  gap: 0.875rem;
-  padding: 0 1.5rem;
-  height: 3.25rem;
+  gap: 0.625rem;
+  padding: 0 1rem;
+  height: 2.75rem;
   border-bottom: 1px solid var(--banner-border);
   background: var(--banner-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(0.75rem);
   transition: background var(--t), border-color var(--t), opacity 0.3s;
   overflow: hidden;
+  min-width: 0;
 }
 #next-banner.mode-now  {
   background: var(--banner-now-bg);
@@ -158,14 +159,14 @@ body::before {
 
 .banner-pill {
   font-family: 'DM Mono', monospace;
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 500;
-  letter-spacing: 0.08em;
-  padding: 0.1875rem 0.5625rem;
-  border-radius: 1.25rem;
+  letter-spacing: 0.1em;
+  padding: 0.125rem 0.4375rem;
+  border-radius: 0.25rem;
   flex-shrink: 0;
   border: 1px solid currentColor;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 #next-banner .banner-pill  { color: var(--banner-text); }
 #next-banner.mode-now .banner-pill { color: var(--banner-now-text); }
@@ -175,12 +176,13 @@ body::before {
 .banner-main {
   flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
+  align-items: center;
+  gap: 0.375rem;
   overflow: hidden;
+  min-width: 0;
 }
 .banner-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
@@ -190,36 +192,56 @@ body::before {
 #next-banner.mode-off  .banner-label { color: var(--banner-off-text); opacity: 0.75; }
 
 .banner-course {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 700;
   color: var(--banner-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.02em;
+  flex-shrink: 1;
+  min-width: 0;
 }
 #next-banner.mode-now  .banner-course { color: var(--banner-now-text); }
 #next-banner.mode-brk  .banner-course { color: var(--banner-brk-text); }
 #next-banner.mode-off  .banner-course { color: var(--banner-off-text); }
 
-.banner-loc {
+/* 鉄道風インライン教室表示 */
+.banner-loc-inline {
   font-family: 'DM Mono', monospace;
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--banner-text);
-  opacity: 0.85;
   white-space: nowrap;
   flex-shrink: 0;
+  opacity: 0.9;
+  letter-spacing: 0.04em;
 }
-#next-banner.mode-now  .banner-loc { color: var(--banner-now-text); }
-#next-banner.mode-brk  .banner-loc { color: var(--banner-brk-text); }
-#next-banner.mode-off  .banner-loc { color: var(--banner-off-text); }
+#next-banner.mode-now .banner-loc-inline { color: var(--banner-now-text); }
+#next-banner.mode-brk .banner-loc-inline { color: var(--banner-brk-text); }
+#next-banner.mode-off .banner-loc-inline { color: var(--banner-off-text); }
 
 .banner-time {
   font-family: 'DM Mono', monospace;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+.bn-map-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.bn-map-btn:hover { border-color: var(--accent3); background: rgba(56,189,248,0.08); }
 
 /* pulsing dot for "in class now" */
 .banner-dot {
@@ -717,24 +739,6 @@ main {
 .tm-close { color: #f87171; border-color: rgba(248,113,113,0.3); }
 .tm-close:hover { background: rgba(248,113,113,0.08) !important; border-color: #f87171 !important; color: #f87171 !important; }
 
-/* banner map button */
-.bn-map-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 7px;
-  font-size: 11.5px;
-  font-family: 'Noto Sans JP', sans-serif;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.08);
-  color: inherit;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-.bn-map-btn:hover { background: rgba(255,255,255,0.15); }
 
 /* modal floormap button */
 .btn-floormap {
@@ -904,20 +908,18 @@ main {
 
   /* Banner */
   #next-banner {
-    height: auto;
-    min-height: 3.5rem;
-    padding: 0.625rem 0.875rem;
-    flex-wrap: wrap;
-    gap: 0.375rem 0.625rem;
+    height: 2.75rem;
+    padding: 0 0.75rem;
+    gap: 0.375rem;
+    flex-wrap: nowrap;
   }
-  .banner-pill   { font-size: 0.5625rem; padding: 0.125rem 0.4375rem; }
-  .banner-label  { font-size: 0.6875rem; }
-  .banner-course { font-size: 0.9375rem; font-weight: 700; }
-  .banner-main   { width: 100%; order: 1; gap: 0.375rem; }
-  .banner-loc    { font-size: 0.75rem; order: 2; flex-basis: 100%; opacity: 1; }
-  .banner-time   { font-size: 0.6875rem; order: 3; }
-  #bn-map-btn    { order: 4; margin-left: auto; font-size: 0.75rem; padding: 0.3125rem 0.625rem; }
-  .banner-dot    { order: 0; }
+  .banner-pill   { font-size: 0.5rem; padding: 0.0625rem 0.3125rem; }
+  .banner-label  { font-size: 0.625rem; }
+  .banner-course { font-size: 0.8125rem; max-width: 40vw; }
+  .banner-loc-inline { font-size: 0.6875rem; }
+  .banner-time   { font-size: 0.5625rem; }
+  .bn-map-btn    { font-size: 0.75rem; padding: 0.1875rem 0.375rem; }
+  .banner-dot    { flex-shrink: 0; }
 
   /* Main */
   main { padding: 0.875rem 0.625rem 5rem; }
@@ -1184,6 +1186,15 @@ main {
   transition: all 0.15s;
 }
 .assign-check:hover { border-color: var(--success); color: var(--success); }
+.assign-edit, .assign-delete {
+  width:1.75rem; height:1.75rem; border-radius:0.375rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size:0.8125rem; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition: all 0.15s;
+}
+.assign-edit:hover   { border-color:var(--accent); color:var(--accent); }
+.assign-delete:hover { border-color:var(--danger);  color:var(--danger);  }
 .assign-empty { text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.875rem; }
 
 /* 休講バッジ (時間割カード) */
@@ -1195,8 +1206,27 @@ main {
   font-size: 0.5625rem; font-weight:600; letter-spacing:0.04em;
   padding: 0.0625rem 0.3125rem; border-radius: 0.25rem;
 }
-.course-card.is-cancelled { opacity: 0.55; }
-.course-card.is-cancelled .cn { text-decoration: line-through; }
+.course-card.is-cancelled {
+  opacity: 0.7;
+  border: 1.5px solid rgba(248,113,113,0.55) !important;
+  background: rgba(248,113,113,0.10) !important;
+}
+.course-card.is-cancelled .cn { text-decoration: line-through; color: var(--danger); }
+/* 中央に大きく休講表示 */
+.cancelled-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(248,113,113,0.08);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.cancelled-label {
+  font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--danger); opacity: 0.9;
+  border: 1.5px solid rgba(248,113,113,0.5);
+  padding: 0.1875rem 0.625rem; border-radius: 0.3125rem;
+  background: rgba(248,113,113,0.12);
+}
 
 /* ═══════════════════════════════════════════════
    SIMPLE MODALS (休講・課題)
@@ -1522,13 +1552,13 @@ main {
   <span class="banner-dot"></span>
   <span class="banner-pill" id="bn-pill">NEXT</span>
   <div class="banner-main">
-    <span class="banner-label" id="bn-label">次の科目は</span>
+    <span class="banner-label" id="bn-label">次は</span>
     <span class="banner-course" id="bn-course"></span>
+    <span class="banner-loc-inline" id="bn-loc-inline"></span>
   </div>
-  <span class="banner-loc" id="bn-loc"></span>
   <span class="banner-time" id="bn-time"></span>
-  <button id="bn-map-btn" class="bn-map-btn" style="display:none" title="フロアマップ">
-    🗺 マップ
+  <button id="bn-map-btn" class="bn-map-btn" style="display:none" title="フロアマップ" onclick="if(window._openBannerFloorMap)window._openBannerFloorMap()">
+    🗺
   </button>
 </div>
 
@@ -1589,16 +1619,20 @@ main {
     <div class="simple-modal-body">
       <div class="sfield">
         <label class="slabel">日付</label>
-        <input class="sinput" id="cc-date" type="date">
+        <input class="sinput" id="cc-date" type="date" oninput="onCcDateOrPeriodChange()">
       </div>
       <div class="sfield">
         <label class="slabel">時限</label>
-        <select class="sinput" id="cc-period">
+        <select class="sinput" id="cc-period" onchange="onCcDateOrPeriodChange()">
           <option value="">— 選択 —</option>
           <option value="1">1限</option><option value="2">2限</option>
           <option value="3">3限</option><option value="4">4限</option>
           <option value="5">5限</option><option value="6">6限</option>
         </select>
+      </div>
+      <div class="sfield" id="cc-course-field" style="display:none">
+        <label class="slabel">授業</label>
+        <select class="sinput" id="cc-course"></select>
       </div>
       <div class="sfield">
         <label class="slabel">メモ（任意）</label>
@@ -1615,8 +1649,9 @@ main {
 <div id="assignment-overlay" class="simple-overlay" onclick="if(event.target===this)closeAssignmentModal()">
   <div class="simple-modal">
     <button class="modal-close" onclick="closeAssignmentModal()">✕</button>
-    <div class="simple-modal-title">📝 課題を追加</div>
+    <div class="simple-modal-title" id="as-modal-title">📝 課題を追加</div>
     <div class="simple-modal-body">
+      <input type="hidden" id="as-edit-id" value="">
       <div class="sfield">
         <label class="slabel">講義名</label>
         <select class="sinput" id="as-course"></select>
@@ -1630,7 +1665,7 @@ main {
         <input class="sinput" id="as-due" type="datetime-local">
       </div>
       <div class="sfield-err" id="as-err"></div>
-      <button class="ssubmit" onclick="addAssignment()">追加</button>
+      <button class="ssubmit" id="as-submit-btn" onclick="submitAssignment()">追加</button>
     </div>
   </div>
 </div>
@@ -1672,7 +1707,7 @@ main {
       <!-- 変更・追加ボタン（4/26以降非表示） -->
       <div id="cs-action-btns">
         <button class="ssubmit" id="cs-change-btn" onclick="applyCourseSwitchChange()">変更</button>
-        <button class="ssubmit ssubmit-danger" id="cs-delete-btn" style="margin-top:0.5rem" onclick="applyCourseDelete()">この時限を非表示にする</button>
+        <button class="ssubmit ssubmit-danger" id="cs-delete-btn" style="margin-top:0.5rem" onclick="applyCourseDelete()">この時間を削除する</button>
       </div>
       <!-- 4/26以降の案内 -->
       <div id="cs-locked-msg" style="display:none;font-size:0.8125rem;color:var(--text-muted);text-align:center;padding:0.5rem 0">
@@ -2113,11 +2148,45 @@ function openCancelClassModal() {
   document.getElementById('cc-period').value = '';
   document.getElementById('cc-note').value = '';
   document.getElementById('cc-err').textContent = '';
+  document.getElementById('cc-course-field').style.display = 'none';
   renderCancelList();
   document.getElementById('cancel-class-overlay').classList.add('open');
 }
 function closeCancelClassModal() {
   document.getElementById('cancel-class-overlay').classList.remove('open');
+}
+
+// 日付または時限が変わったとき、該当授業のプルダウンを更新
+function onCcDateOrPeriodChange() {
+  const dateVal   = document.getElementById('cc-date').value;
+  const periodVal = document.getElementById('cc-period').value;
+  const field     = document.getElementById('cc-course-field');
+  const sel       = document.getElementById('cc-course');
+  if (!dateVal || !periodVal) { field.style.display = 'none'; return; }
+
+  // 日付から曜日キーを取得
+  const d = new Date(dateVal + 'T00:00:00');
+  const DOW = [null,'Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayKey = DOW[d.getDay()];
+  if (!dayKey) { field.style.display = 'none'; return; }
+
+  const p = parseInt(periodVal);
+  // admin が選択中の科目かつ、その曜日・時限にある科目
+  const myNames = new Set(getActiveCourses().map(c => c.name));
+  const cands = courses.filter(c =>
+    c.slots.some(s => s.day === dayKey && s.period === p) && myNames.has(c.name)
+  );
+
+  if (!cands.length) { field.style.display = 'none'; return; }
+
+  sel.innerHTML = '';
+  cands.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = `${c.name}${c.teacher ? ' ／ '+c.teacher : ''}`;
+    sel.appendChild(opt);
+  });
+  field.style.display = 'block';
 }
 
 function addCancelClass() {
@@ -2129,7 +2198,12 @@ function addCancelClass() {
   if (!date)   { err.textContent = '日付を選択してください'; return; }
   if (!period) { err.textContent = '時限を選択してください'; return; }
   const cancels = getCancels();
-  cancels[cancelKey(date, period)] = { note };
+  const key = cancelKey(date, period);
+  // 科目名を保存（選択されていれば）
+  const courseField = document.getElementById('cc-course-field');
+  const courseName  = courseField.style.display !== 'none'
+    ? document.getElementById('cc-course').value : '';
+  cancels[key] = { note, courseName };
   saveCancels(cancels);
   renderCancelList();
   renderTimetable();
@@ -2191,17 +2265,40 @@ function isAssignDone(assignId) {
   return !!getDoneSet()[assignId];
 }
 
-function openAssignmentModal() {
-  // populate course dropdown
+function openAssignmentModal(editId) {
+  // admin の選択科目のみプルダウンに表示
   const sel = document.getElementById('as-course');
   sel.innerHTML = '';
-  courses.forEach(c => {
+  const myNames = new Set(getActiveCourses().map(c => c.name));
+  courses.filter(c => myNames.has(c.name)).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name; opt.textContent = c.name;
     sel.appendChild(opt);
   });
-  document.getElementById('as-title').value = '';
-  document.getElementById('as-due').value   = '';
+
+  const editIdEl = document.getElementById('as-edit-id');
+  const title    = document.getElementById('as-modal-title');
+  const submitBtn= document.getElementById('as-submit-btn');
+
+  if (editId) {
+    // 編集モード
+    const list = getAssignments();
+    const item = list.find(a => a.id === editId);
+    if (!item) return;
+    editIdEl.value = String(editId);
+    sel.value = item.course;
+    document.getElementById('as-title').value = item.title;
+    document.getElementById('as-due').value   = item.due;
+    title.textContent      = '✏️ 課題を編集';
+    submitBtn.textContent  = '更新';
+  } else {
+    // 新規追加モード
+    editIdEl.value = '';
+    document.getElementById('as-title').value = '';
+    document.getElementById('as-due').value   = '';
+    title.textContent      = '📝 課題を追加';
+    submitBtn.textContent  = '追加';
+  }
   document.getElementById('as-err').textContent = '';
   document.getElementById('assignment-overlay').classList.add('open');
 }
@@ -2209,7 +2306,8 @@ function closeAssignmentModal() {
   document.getElementById('assignment-overlay').classList.remove('open');
 }
 
-function addAssignment() {
+function submitAssignment() {
+  const editId = document.getElementById('as-edit-id').value;
   const course = document.getElementById('as-course').value;
   const title  = document.getElementById('as-title').value.trim();
   const due    = document.getElementById('as-due').value;
@@ -2218,13 +2316,31 @@ function addAssignment() {
   if (!course) { err.textContent = '講義を選択してください'; return; }
   if (!title)  { err.textContent = '課題名を入力してください'; return; }
   if (!due)    { err.textContent = '期限を入力してください'; return; }
-  // グローバルリストに追加（done フィールドは持たない）
+
   const list = getAssignments();
-  list.push({ id: Date.now(), course, title, due });
+  if (editId) {
+    const idx = list.findIndex(a => a.id === Number(editId));
+    if (idx >= 0) { list[idx] = { ...list[idx], course, title, due }; }
+  } else {
+    list.push({ id: Date.now(), course, title, due });
+  }
   saveAssignments(list);
   renderAssignments();
   closeAssignmentModal();
-  showToast('📝 課題を追加しました（全員に反映）');
+  showToast(editId ? '✏️ 課題を更新しました' : '📝 課題を追加しました（全員に反映）');
+}
+
+function deleteAssignment(id) {
+  if (!confirm('この課題を削除しますか？')) return;
+  const list = getAssignments().filter(a => a.id !== id);
+  saveAssignments(list);
+  renderAssignments();
+  showToast('🗑 課題を削除しました');
+}
+
+// 新規ユーザー判定: overrideキーが存在しない（何も選択していない）
+function isNewUser() {
+  return Object.keys(getOverrides()).length === 0;
 }
 
 function checkAssignment(assignId) {
@@ -2247,14 +2363,24 @@ function restoreAssignment(assignId) {
 function renderAssignments() {
   const wrap = document.getElementById('assignments-wrap');
   const list = document.getElementById('assignments-list');
-  const all  = getAssignments();        // グローバル課題リスト
-  const done = getDoneSet();            // 個人完了セット
+  const all  = getAssignments();
+  const done = getDoneSet();
+  const admin = isAdmin();
 
   // 自分が受講中の科目名セット
   const myNames = new Set(getActiveCourses().map(c => c.name));
 
-  // 自分の受講科目に関連するものだけ
-  const myAll    = all.filter(a => myNames.has(a.course));
+  // 新規ユーザー（科目未選択）は1週間先までの課題を全表示
+  const isNew = isNewUser();
+  const oneWeekLater = Date.now() + 7*24*60*60*1000;
+
+  let myAll;
+  if (isNew) {
+    myAll = all.filter(a => new Date(a.due).getTime() <= oneWeekLater);
+  } else {
+    myAll = all.filter(a => myNames.has(a.course));
+  }
+
   const active   = myAll.filter(a => !done[a.id]);
   const doneList = myAll.filter(a => !!done[a.id]);
 
@@ -2280,14 +2406,18 @@ function renderAssignments() {
   const now = Date.now();
   active.sort((a,b) => new Date(a.due) - new Date(b.due));
   active.forEach(a => {
-    const dueMs  = new Date(a.due).getTime();
-    const diff   = dueMs - now;
+    const dueMs   = new Date(a.due).getTime();
+    const diff    = dueMs - now;
     const overdue = diff < 0;
     const near    = !overdue && diff < 1000*60*60*24*2;
     const dueStr  = new Date(a.due).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
 
     const item = document.createElement('div');
     item.className = 'assign-item' + (overdue ? ' overdue' : '');
+    const adminBtns = admin
+      ? `<button class="assign-edit"  title="編集" onclick="openAssignmentModal(${a.id})">✏️</button>
+         <button class="assign-delete" title="削除" onclick="deleteAssignment(${a.id})">✕</button>`
+      : '';
     item.innerHTML = `
       <div class="assign-dot"></div>
       <div class="assign-body">
@@ -2295,6 +2425,7 @@ function renderAssignments() {
         <div class="assign-title">${esc(a.title)}</div>
         <div class="assign-due ${overdue?'over':near?'near':''}">${overdue?'⚠️ 期限超過: ':'期限: '}${dueStr}</div>
       </div>
+      ${adminBtns}
       <button class="assign-check" title="提出済みにする" onclick="checkAssignment(${a.id})">✓</button>`;
     list.appendChild(item);
   });
@@ -2342,7 +2473,7 @@ function getOverrides() {
 function saveOverrides(obj) { localStorage.setItem(overrideKey(), JSON.stringify(obj)); }
 
 // 特定の day:period に対して表示する講義を解決する
-// デフォルト: 空きコマ（ユーザーが明示的にswitchを設定した場合のみ表示）
+// 候補が1つのみ → 強制表示。複数 → ユーザー設定に従い、未設定なら空きコマ
 function resolveDisplayCourse(day, period, candidates) {
   if (!candidates.length) return null;
   const ov = getOverrides()[`${day}:${period}`];
@@ -2353,7 +2484,9 @@ function resolveDisplayCourse(day, period, candidates) {
       if (found) return found;
     }
   }
-  return null; // デフォルト: 空きコマ
+  // 候補が1つのみの場合は強制表示
+  if (candidates.length === 1) return candidates[0];
+  return null; // 複数候補・未設定 → 空きコマ
 }
 
 /* ─────────────────────────────────────────────
@@ -2405,31 +2538,38 @@ function countTakers(courseName) {
 
 let _csSwitchContext = null; // { day, period, candidates, isEmpty }
 
-// 指定講義の情報グリッドHTMLを生成
+// 指定講義の情報グリッドHTMLを生成（受講者数は別に表示するため除外、建物+教室を統合）
 function buildCsInfoGrid(c) {
   if (!c) return '';
-  const unknown = isUnknown(c);
-  const loc     = buildLoc(c) || '—';
-  const locShort= buildLocShort(c) || '—';
-  const slot    = c.slots
+  const unknown  = isUnknown(c);
+  const locShort = buildLocShort(c) || '—';
+  const slot     = c.slots
     .map(s=>`${DAY_JA[s.day]}曜日 ${s.period}限 (${periodStartStr(s.period)}〜${periodEndStr(s.period)})`)
     .join('\n') || c.timeRaw || '—';
-  const bldStr  = unknown ? '教室不定' : (c.building ? c.building+'棟' : '—');
-  const takers  = countTakers(c.name);
+  const fmKey    = getFloorKey(c);
 
   const items = [
     { lbl:'担当者',   val: c.teacher||'未設定', full:false },
     { lbl:'単位数',   val: c.credits ? `${c.credits} 単位` : '—', full:false },
     { lbl:'開講時間', val: slot,  full:true  },
-    { lbl:'建物',     val: bldStr, full:false },
-    { lbl:'教室',     val: unknown ? '教室不定' : (c.room||'—'), full:false },
-    { lbl:'受講者数', val: `${takers} 人`, full:false },
+    { lbl:'教室',     val: unknown ? '教室不定' : locShort, full:false },
   ];
-  return items.map(it => `
+
+  let html = items.map(it => `
     <div class="cs-info-item${it.full?' full':''}">
       <div class="cs-info-lbl">${it.lbl}</div>
       <div class="cs-info-val">${esc(it.val)}</div>
     </div>`).join('');
+
+  // フロアマップボタン
+  if (fmKey && !unknown) {
+    html += `<div class="cs-info-item full" style="cursor:pointer;background:rgba(56,189,248,0.07);border-color:rgba(56,189,248,0.3)"
+      onclick="openFloorMap('${fmKey}','${esc(c.name)}','${esc(c.room||'')}')">
+      <div class="cs-info-lbl">フロアマップ</div>
+      <div class="cs-info-val" style="color:var(--accent3)">🗺 ${fmKey} フロアマップを表示</div>
+    </div>`;
+  }
+  return html;
 }
 
 function openCourseSwitchModal(day, period, candidates, isEmpty) {
@@ -2439,15 +2579,17 @@ function openCourseSwitchModal(day, period, candidates, isEmpty) {
   _csSwitchContext = { day, period, candidates: allSameSlot, isEmpty: !!isEmpty };
 
   const locked  = isEditLocked();
-  // 現在表示中の講義を特定
+  // 現在表示中の講義を特定（resolveDisplayCourse と同じロジック）
   const ov      = getOverrides()[`${day}:${period}`];
   let current   = null;
   if (ov && ov.type === 'switch') {
     current = allSameSlot.find(c => c.name === ov.courseName) || null;
   } else if (ov && ov.type === 'hide') {
-    current = null; // 非表示中
+    current = null;
+  } else if (allSameSlot.length === 1) {
+    current = allSameSlot[0]; // 候補1つは強制表示
   } else {
-    current = allSameSlot.length > 0 ? allSameSlot[0] : null;
+    current = null; // 複数候補・未設定 → 空きコマ
   }
 
   const isCurrentEmpty = !current; // 現在空きコマ
@@ -2712,102 +2854,6 @@ function _refreshTestDisplay() {
 /* ─────────────────────────────────────────────
    BANNER
 ───────────────────────────────────────────── */
-function updateBanner() {
-  const banner  = document.getElementById('next-banner');
-  const today   = todayKey();
-  if (!today || !courses.length) { banner.style.display = 'none'; return; }
-
-  // Courses today, sorted by period
-  const todayCourses = courses
-    .filter(c => c.slots.some(s => s.day === today))
-    .map(c => ({ course: c, period: c.slots.find(s=>s.day===today).period }))
-    .sort((a,b) => a.period - b.period);
-
-  if (!todayCourses.length) { banner.style.display = 'none'; return; }
-
-  const nm = nowMin();
-
-  // Find the current or next course
-  let inClass  = null;
-  let nextItem = null;
-  let afterBreak = false;
-
-  for (const item of todayCourses) {
-    const p = item.period;
-    const s = PERIOD_START_MIN[p];
-    const e = periodEndMin(p);
-    if (nm >= s && nm <= e) { inClass = item; break; }
-    if (nm < s && !nextItem) {
-      nextItem = item;
-      // check if we're in a break right before this period
-      if (p > 1) {
-        const prevE = periodEndMin(p-1);
-        if (nm > prevE) afterBreak = true;
-      }
-    }
-  }
-
-  const bn       = document.getElementById('next-banner');
-  const pill     = document.getElementById('bn-pill');
-  const label    = document.getElementById('bn-label');
-  const course   = document.getElementById('bn-course');
-  const loc      = document.getElementById('bn-loc');
-  const timeEl   = document.getElementById('bn-time');
-
-  bn.className = ''; // reset mode classes
-  bn.style.display = 'flex';
-
-  if (inClass) {
-    // ── 授業中 ──
-    const c   = inClass.course;
-    const p   = inClass.period;
-    const rem = periodEndMin(p) - nm;
-    const locStr = buildLocShort(c);
-    bn.classList.add('mode-now');
-    pill.textContent   = '授業中';
-    label.textContent  = '';
-    course.textContent = c.name;
-    loc.textContent    = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = `残り ${rem}分 (〜${periodEndStr(p)})`;
-
-  } else if (afterBreak && nextItem) {
-    // ── 休憩中 ──
-    const c   = nextItem.course;
-    const p   = nextItem.period;
-    const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLocShort(c);
-    bn.classList.add('mode-brk');
-    pill.textContent   = '休憩中';
-    label.textContent  = '次の科目は';
-    course.textContent = c.name;
-    loc.textContent    = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = `${rem}分後 (${periodStartStr(p)}〜)`;
-
-  } else if (nextItem) {
-    // ── 次の科目 ──
-    const c   = nextItem.course;
-    const p   = nextItem.period;
-    const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLocShort(c);
-    bn.classList.add('');
-    pill.textContent   = 'NEXT';
-    label.textContent  = '次の科目は';
-    course.textContent = c.name;
-    loc.textContent    = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = rem < 60
-      ? `${rem}分後 (${periodStartStr(p)}〜)`
-      : `${periodStartStr(p)}〜 (${p}限)`;
-
-  } else {
-    // ── 本日の授業終了 ──
-    bn.classList.add('mode-off');
-    pill.textContent   = '本日終了';
-    label.textContent  = 'お疲れさまでした';
-    course.textContent = '';
-    loc.textContent    = '';
-    timeEl.textContent = '';
-  }
-}
 
 /* ─────────────────────────────────────────────
    LOCATION HELPERS
@@ -2898,19 +2944,17 @@ function updateBanner() {
   const today   = todayKey();
   if (!today || !courses.length) { banner.style.display = 'none'; return; }
 
-  // Courses today, sorted by period
+  // ユーザーが選択した科目のうち今日のもの
+  const myNames = new Set(getActiveCourses().map(c => c.name));
   const todayCourses = courses
-    .filter(c => c.slots.some(s => s.day === today))
+    .filter(c => c.slots.some(s => s.day === today) && myNames.has(c.name))
     .map(c => ({ course: c, period: c.slots.find(s=>s.day===today).period }))
     .sort((a,b) => a.period - b.period);
 
   if (!todayCourses.length) { banner.style.display = 'none'; return; }
 
   const nm = nowMin();
-
-  let inClass  = null;
-  let nextItem = null;
-  let afterBreak = false;
+  let inClass = null, nextItem = null, afterBreak = false;
 
   for (const item of todayCourses) {
     const p = item.period;
@@ -2919,30 +2963,29 @@ function updateBanner() {
     if (nm >= s && nm <= e) { inClass = item; break; }
     if (nm < s && !nextItem) {
       nextItem = item;
-      if (p > 1) {
-        const prevE = periodEndMin(p-1);
-        if (nm > prevE) afterBreak = true;
-      }
+      if (p > 1 && nm > periodEndMin(p-1)) afterBreak = true;
     }
   }
 
-  const bn       = document.getElementById('next-banner');
-  const pill     = document.getElementById('bn-pill');
-  const label    = document.getElementById('bn-label');
-  const courseEl = document.getElementById('bn-course');
-  const locEl    = document.getElementById('bn-loc');
-  const timeEl   = document.getElementById('bn-time');
-  const mapBtn   = document.getElementById('bn-map-btn');
+  const bn         = document.getElementById('next-banner');
+  const pill       = document.getElementById('bn-pill');
+  const label      = document.getElementById('bn-label');
+  const courseEl   = document.getElementById('bn-course');
+  const locInline  = document.getElementById('bn-loc-inline');
+  const timeEl     = document.getElementById('bn-time');
+  const mapBtn     = document.getElementById('bn-map-btn');
 
   bn.className = '';
   bn.style.display = 'flex';
 
-  function setupMap(c) {
-    const key = getFloorKey(c);
-    if (key && mapBtn) {
+  // バナー用フロアマップボタン設定
+  let _bannerFloorKey = null;
+  let _bannerCourse   = null;
+  function setupBannerMap(c) {
+    _bannerCourse   = c;
+    _bannerFloorKey = getFloorKey(c);
+    if (_bannerFloorKey && mapBtn) {
       mapBtn.style.display = 'inline-flex';
-      mapBtn.onclick = () => openFloorMap(key, c.name, c.room);
-      mapBtn.title   = key + ' フロアマップを表示';
     } else if (mapBtn) {
       mapBtn.style.display = 'none';
     }
@@ -2952,51 +2995,58 @@ function updateBanner() {
     const c   = inClass.course;
     const p   = inClass.period;
     const rem = periodEndMin(p) - nm;
-    const locStr = buildLocShort(c);
+    const loc = buildLocShort(c);
     bn.classList.add('mode-now');
-    pill.textContent   = '授業中';
-    label.textContent  = '';
-    courseEl.textContent = c.name;
-    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = `残り ${rem}分 (〜${periodEndStr(p)})`;
-    setupMap(c);
+    pill.textContent      = '●';
+    label.textContent     = '授業中';
+    courseEl.textContent  = c.name;
+    locInline.textContent = loc ? `  ${loc}` : '';
+    timeEl.textContent    = `残り${rem}分`;
+    setupBannerMap(c);
 
   } else if (afterBreak && nextItem) {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLocShort(c);
+    const loc = buildLocShort(c);
     bn.classList.add('mode-brk');
-    pill.textContent   = '休憩中';
-    label.textContent  = '次の科目は';
-    courseEl.textContent = c.name;
-    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = `${rem}分後 (${periodStartStr(p)}〜)`;
-    setupMap(c);
+    pill.textContent      = '▶';
+    label.textContent     = '次は';
+    courseEl.textContent  = c.name;
+    locInline.textContent = loc ? `  ${loc}` : '';
+    timeEl.textContent    = `${periodStartStr(p)} — ${rem}分後`;
+    setupBannerMap(c);
 
   } else if (nextItem) {
     const c   = nextItem.course;
     const p   = nextItem.period;
     const rem = PERIOD_START_MIN[p] - nm;
-    const locStr = buildLocShort(c);
-    pill.textContent   = 'NEXT';
-    label.textContent  = '次の科目は';
-    courseEl.textContent = c.name;
-    locEl.textContent  = locStr ? `📍 ${locStr}` : '';
-    timeEl.textContent = rem < 60
-      ? `${rem}分後 (${periodStartStr(p)}〜)`
-      : `${periodStartStr(p)}〜 (${p}限)`;
-    setupMap(c);
+    const loc = buildLocShort(c);
+    pill.textContent      = '▶';
+    label.textContent     = '次は';
+    courseEl.textContent  = c.name;
+    locInline.textContent = loc ? `  ${loc}` : '';
+    timeEl.textContent    = rem < 60
+      ? `${periodStartStr(p)} — ${rem}分後`
+      : `${periodStartStr(p)} (${p}限)`;
+    setupBannerMap(c);
 
   } else {
     bn.classList.add('mode-off');
-    pill.textContent   = '本日終了';
-    label.textContent  = 'お疲れさまでした';
-    courseEl.textContent = '';
-    locEl.textContent  = '';
-    timeEl.textContent = '';
+    pill.textContent      = '■';
+    label.textContent     = '本日終了';
+    courseEl.textContent  = '';
+    locInline.textContent = '';
+    timeEl.textContent    = '';
     if (mapBtn) mapBtn.style.display = 'none';
   }
+
+  // バナーのフロアマップボタンのクリックハンドラ
+  window._openBannerFloorMap = () => {
+    if (_bannerFloorKey && _bannerCourse) {
+      openFloorMap(_bannerFloorKey, _bannerCourse.name, _bannerCourse.room);
+    }
+  };
 }
 
 function startTick() {
@@ -3298,20 +3348,18 @@ function makeCard(c, isActive, day, period, allCandidates) {
   const locShort = buildLocShort(c);
 
   if (isWeek) {
-    // 週表示: 教室を最下部中央に
     card.innerHTML = `
-      ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
-      <div class="cn">${esc(c.name)}</div>
-      <div class="cm">
+      ${cancelled ? '<div class="cancelled-overlay"><span class="cancelled-label">休講</span></div>' : ''}
+      <div class="cn"${cancelled?' style="opacity:0.4"':''}>${esc(c.name)}</div>
+      <div class="cm"${cancelled?' style="opacity:0.4"':''}>
         <span class="cm-teacher">${esc(c.teacher||'—')}</span>
       </div>
-      ${locShort ? `<div class="cm-room-week">${esc(locShort)}</div>` : ''}`;
+      ${locShort ? `<div class="cm-room-week"${cancelled?' style="opacity:0.4"':''}>${esc(locShort)}</div>` : ''}`;
   } else {
-    // 日表示: 教室を右端に
     card.innerHTML = `
-      ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
-      <div class="cn">${esc(c.name)}</div>
-      <div class="cm">
+      ${cancelled ? '<div class="cancelled-overlay"><span class="cancelled-label">休講</span></div>' : ''}
+      <div class="cn"${cancelled?' style="opacity:0.4"':''}>${esc(c.name)}</div>
+      <div class="cm"${cancelled?' style="opacity:0.4"':''}>
         <span class="cm-teacher">${esc(c.teacher||'—')}</span>
         ${locShort ? `<span class="cm-room">📍${esc(locShort)}</span>` : ''}
       </div>`;
@@ -3441,19 +3489,17 @@ function openModal(c) {
   codeEl.style.cssText = `background:${col}22;color:${col};border:1px solid ${col}55`;
   document.getElementById('m-name').textContent = c.name;
 
-  const unknown = isUnknown(c);
-  const bldStr  = unknown ? '教室不定' : (c.building ? c.building+'棟' : '—');
-  const fmKey   = getFloorKey(c);
-
   // 受講者数
-  const takers = countTakers(c.name);
+  const takers   = countTakers(c.name);
+  const locShort = buildLocShort(c) || '—';
+  const unknown  = isUnknown(c);
+  const fmKey    = getFloorKey(c);
 
   const items = [
-    { lbl:'担当者',  val: c.teacher||'未設定', full:false },
-    { lbl:'単位数',  val: c.credits?`${c.credits} 単位`:'—', full:false },
-    { lbl:'開講時間',val: slot, full:true },
-    { lbl:'建物',    val: bldStr, full:false },
-    { lbl:'教室',    val: unknown ? '教室不定' : (c.room||'—'), full:false },
+    { lbl:'担当者',   val: c.teacher||'未設定', full:false },
+    { lbl:'単位数',   val: c.credits?`${c.credits} 単位`:'—', full:false },
+    { lbl:'開講時間', val: slot, full:true },
+    { lbl:'教室',     val: unknown ? '教室不定' : locShort, full:false },
     { lbl:'受講者数', val: `${takers} 人`, full:false },
   ];
 
@@ -3657,6 +3703,11 @@ function onLoginSuccess(id) {
   adminItems.forEach(el => {
     el.style.display = showAdmin ? (el.tagName === 'BUTTON' ? 'flex' : 'block') : 'none';
   });
+  // データはこのデバイスのブラウザに保存。他端末とは同期されない旨を初回のみ通知
+  if (!localStorage.getItem('campus_device_notice')) {
+    localStorage.setItem('campus_device_notice', '1');
+    setTimeout(() => showToast('📱 データはこの端末に保存されます（他端末と同期されません）'), 2000);
+  }
   // データ読み込み開始
   loadTimeXlsx();
 }
