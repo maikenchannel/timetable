@@ -943,7 +943,8 @@ main {
       <button class="fm-close" onclick="closeFloorMap()">✕</button>
     </div>
     <div id="fm-body">
-      <img id="fm-img" src="" alt="" onerror="this.parentNode.innerHTML='<div class=fm-err>画像が見つかりません<br><small>同フォルダに '+this.alt+'.png を配置してください</small></div>'">
+      <img id="fm-img" src="" alt=""
+        onerror="this.parentNode.innerHTML='<div class=fm-err>画像が見つかりません<br><small>' + this.src.split('/').pop() + ' を同フォルダに配置してください</small></div>'">
     </div>
   </div>
 </div>
@@ -1094,10 +1095,14 @@ function toggleTheme() {
    FILE LOADING  — time.xlsx (same folder, fixed)
 ───────────────────────────────────────────── */
 
-// Resolve same-folder URL that works for both http:// and file://
+// 同フォルダのファイルへの絶対URLを確実に返す
+// URL オブジェクトで解決するため GitHub Pages・file:// どちらでも動作
 function sameDir(filename) {
-  // location.href: strip filename portion, append target
-  return location.href.replace(/\/[^/?#]*([?#].*)?$/, '/') + filename;
+  // import.meta は使えないので location を基準にする
+  // pathname の末尾がファイル名なら除去、ディレクトリなら維持
+  const base = location.href.split('?')[0].split('#')[0]; // クエリ・ハッシュ除去
+  const dir  = base.endsWith('/') ? base : base.substring(0, base.lastIndexOf('/') + 1);
+  return dir + filename;
 }
 
 function floorMapSrc(key) {
