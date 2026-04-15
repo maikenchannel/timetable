@@ -1110,6 +1110,131 @@ main {
 .spinner { display:inline-block; width:0.9375rem; height:0.9375rem; border:0.125rem solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
 @keyframes spin { to { transform:rotate(360deg); } }
 /* ═══════════════════════════════════════════════
+   ASSIGNMENTS
+═══════════════════════════════════════════════ */
+#assignments-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.assign-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 0.625rem; padding: 0.75rem 1rem;
+  box-shadow: var(--shadow);
+  transition: background var(--t), border-color var(--t);
+  cursor: default;
+}
+.assign-item.overdue { border-color: rgba(248,113,113,0.5); background: rgba(248,113,113,0.04); }
+.assign-dot { width:0.5rem; height:0.5rem; border-radius:50%; flex-shrink:0; background: var(--accent); }
+.assign-item.overdue .assign-dot { background: var(--danger); }
+.assign-body { flex:1; min-width:0; }
+.assign-course { font-size:0.6875rem; color:var(--text-muted); margin-bottom:0.125rem; }
+.assign-title  { font-size:0.875rem; font-weight:500; color:var(--text); }
+.assign-due    { font-size:0.6875rem; font-family:'DM Mono',monospace; color:var(--text-muted); margin-top:0.125rem; }
+.assign-due.near { color: var(--warning); }
+.assign-due.over { color: var(--danger); }
+.assign-check {
+  width:1.75rem; height:1.75rem; border-radius:0.375rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-muted); font-size:0.875rem;
+  cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  transition: all 0.15s;
+}
+.assign-check:hover { border-color: var(--success); color: var(--success); }
+.assign-empty { text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.875rem; }
+
+/* 休講バッジ (時間割カード) */
+.card-cancelled {
+  position: absolute; top:0.25rem; right:0.25rem;
+  background: rgba(248,113,113,0.18);
+  border: 1px solid rgba(248,113,113,0.4);
+  color: var(--danger);
+  font-size: 0.5625rem; font-weight:600; letter-spacing:0.04em;
+  padding: 0.0625rem 0.3125rem; border-radius: 0.25rem;
+}
+.course-card.is-cancelled { opacity: 0.55; }
+.course-card.is-cancelled .cn { text-decoration: line-through; }
+
+/* ═══════════════════════════════════════════════
+   SIMPLE MODALS (休講・課題)
+═══════════════════════════════════════════════ */
+.simple-overlay {
+  display: none; position: fixed; inset:0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(0.5rem);
+  z-index: 400; align-items:center; justify-content:center; padding:1.5rem;
+}
+.simple-overlay.open { display: flex; }
+.simple-modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 1.125rem; padding: 1.75rem 1.5rem;
+  width: min(22rem, 100%); position:relative;
+  box-shadow: 0 1.5rem 3.75rem rgba(0,0,0,0.4);
+  animation: modalIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
+  transition: background var(--t), border-color var(--t);
+  max-height: 90vh; overflow-y: auto;
+}
+.simple-modal-title { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:1.25rem; }
+.simple-modal-body  { display:flex; flex-direction:column; gap:0.75rem; }
+.sfield { display:flex; flex-direction:column; gap:0.3rem; }
+.slabel { font-size:0.75rem; font-weight:500; color:var(--text-dim); }
+.sinput {
+  background: var(--surface2); border:1px solid var(--border);
+  border-radius:0.5rem; padding:0.625rem 0.75rem;
+  font-size:0.875rem; font-family:'Noto Sans JP',sans-serif;
+  color: var(--text); outline:none;
+  transition: border-color 0.15s, background var(--t);
+  width:100%;
+}
+.sinput:focus { border-color: var(--accent); }
+.ssubmit {
+  background: var(--accent); color:#fff; border:none;
+  border-radius:0.5rem; padding:0.6875rem; font-size:0.875rem;
+  font-family:'Noto Sans JP',sans-serif; font-weight:500;
+  cursor:pointer; transition: background 0.15s, transform 0.12s; width:100%;
+}
+.ssubmit:hover  { background:#8f7fff; transform:translateY(-1px); }
+.ssubmit-danger { background: rgba(248,113,113,0.15); color:var(--danger); border:1px solid rgba(248,113,113,0.3); }
+.ssubmit-danger:hover { background:rgba(248,113,113,0.25); transform:translateY(-1px); }
+.sfield-err { font-size:0.8125rem; color:var(--danger); min-height:1em; }
+
+/* 休講リスト */
+.cc-list-item {
+  display:flex; align-items:center; gap:0.5rem;
+  padding:0.5rem 0.625rem; background:var(--surface2);
+  border:1px solid var(--border); border-radius:0.5rem; font-size:0.8125rem;
+}
+.cc-list-item .cc-info { flex:1; }
+.cc-list-item button { background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.875rem; padding:0 0.25rem; }
+
+/* 提出済みリスト */
+.done-item {
+  padding:0.625rem 0.75rem; background:var(--surface2);
+  border:1px solid var(--border); border-radius:0.5rem;
+  margin-bottom:0.5rem;
+}
+.done-item-course { font-size:0.6875rem; color:var(--text-muted); }
+.done-item-title  { font-size:0.875rem; font-weight:500; color:var(--text); }
+.done-restore {
+  font-size:0.75rem; color:var(--accent); background:none; border:none;
+  cursor:pointer; text-decoration:underline; margin-top:0.25rem; padding:0;
+  font-family:'Noto Sans JP',sans-serif;
+}
+
+/* 課題追加ボタン (提出済み閲覧) */
+#btn-show-done {
+  font-size:0.75rem; color:var(--text-muted); background:var(--surface2);
+  border:1px solid var(--border); border-radius:0.375rem;
+  padding:0.3125rem 0.75rem; cursor:pointer; transition:all 0.15s;
+  margin-top:0.5rem; font-family:'Noto Sans JP',sans-serif;
+}
+#btn-show-done:hover { border-color:var(--accent); color:var(--accent); }
+
+/* 休日ラベル */
+.holiday-chip {
+  font-size:0.6875rem; color:var(--danger); opacity:0.8;
+  background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.25);
+  border-radius:0.375rem; padding:0.125rem 0.4375rem;
+  margin-left:0.5rem; vertical-align:middle;
+}
+
+/* ═══════════════════════════════════════════════
    HAMBURGER MENU
 ═══════════════════════════════════════════════ */
 .hamburger-btn {
@@ -1400,6 +1525,87 @@ main {
     <div id="err-box-wrap"></div>
   </div>
 </main>
+
+<!-- ═══ 休講設定モーダル (管理者専用) ═══ -->
+<div id="cancel-class-overlay" class="simple-overlay" onclick="if(event.target===this)closeCancelClassModal()">
+  <div class="simple-modal">
+    <button class="modal-close" onclick="closeCancelClassModal()">✕</button>
+    <div class="simple-modal-title">🚫 休講を設定</div>
+    <div class="simple-modal-body">
+      <div class="sfield">
+        <label class="slabel">日付</label>
+        <input class="sinput" id="cc-date" type="date">
+      </div>
+      <div class="sfield">
+        <label class="slabel">時限</label>
+        <select class="sinput" id="cc-period">
+          <option value="">— 選択 —</option>
+          <option value="1">1限</option><option value="2">2限</option>
+          <option value="3">3限</option><option value="4">4限</option>
+          <option value="5">5限</option><option value="6">6限</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <label class="slabel">メモ（任意）</label>
+        <input class="sinput" id="cc-note" type="text" placeholder="例: 教員出張のため">
+      </div>
+      <div class="sfield-err" id="cc-err"></div>
+      <button class="ssubmit" onclick="addCancelClass()">追加</button>
+      <div id="cc-list" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 課題追加モーダル (管理者専用) ═══ -->
+<div id="assignment-overlay" class="simple-overlay" onclick="if(event.target===this)closeAssignmentModal()">
+  <div class="simple-modal">
+    <button class="modal-close" onclick="closeAssignmentModal()">✕</button>
+    <div class="simple-modal-title">📝 課題を追加</div>
+    <div class="simple-modal-body">
+      <div class="sfield">
+        <label class="slabel">講義名</label>
+        <select class="sinput" id="as-course"></select>
+      </div>
+      <div class="sfield">
+        <label class="slabel">課題名</label>
+        <input class="sinput" id="as-title" type="text" placeholder="例: レポート第3回">
+      </div>
+      <div class="sfield">
+        <label class="slabel">期限</label>
+        <input class="sinput" id="as-due" type="datetime-local">
+      </div>
+      <div class="sfield-err" id="as-err"></div>
+      <button class="ssubmit" onclick="addAssignment()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 提出済み課題閲覧モーダル ═══ -->
+<div id="done-assign-overlay" class="simple-overlay" onclick="if(event.target===this)closeDoneAssignModal()">
+  <div class="simple-modal">
+    <button class="modal-close" onclick="closeDoneAssignModal()">✕</button>
+    <div class="simple-modal-title">✅ 提出済み課題</div>
+    <div class="simple-modal-body">
+      <div id="done-assign-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 講義切替モーダル ═══ -->
+<div id="course-switch-overlay" class="simple-overlay" onclick="if(event.target===this)closeCourseSwitch()">
+  <div class="simple-modal">
+    <button class="modal-close" onclick="closeCourseSwitch()">✕</button>
+    <div class="simple-modal-title" id="cs-title">講義の設定</div>
+    <div class="simple-modal-body">
+      <div class="sfield">
+        <label class="slabel">表示する講義に変更</label>
+        <select class="sinput" id="cs-select"></select>
+      </div>
+      <button class="ssubmit" onclick="applyCourseSwitchChange()">変更</button>
+      <button class="ssubmit ssubmit-danger" style="margin-top:0.5rem" onclick="applyCourseDelete()">この時限を非表示にする</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ MODAL ═══ -->
 <div id="modal-overlay" onclick="overlayClick(event)">
@@ -1719,13 +1925,364 @@ function nowMin() {
 }
 function todayKey() {
   if (TEST.active) return TEST.dayKey;
-  return JS_DAY[new Date().getDay()];
+  const d = new Date();
+  if (isHolidayDate(d)) return null; // 休日は授業なし
+  return JS_DAY[d.getDay()];
 }
 
 function isBreak(p) {
   if (p >= 6) return false;
   const nm = nowMin();
   return nm > periodEndMin(p) && nm < PERIOD_START_MIN[p+1];
+}
+
+/* ─────────────────────────────────────────────
+   CURRENT SESSION USER
+───────────────────────────────────────────── */
+function currentUserId() {
+  const s = getSession();
+  return s ? s.id : null;
+}
+const ADMIN_ID = '26X2004';
+function isAdmin() { return currentUserId() === ADMIN_ID; }
+
+/* ─────────────────────────────────────────────
+   HOLIDAY DETECTION
+   Rules (academic year, year-agnostic by month/day):
+   - 日曜日 (always)
+   - 4/28〜5/6
+   - 8/2〜9/17
+   - 11/3
+   - 12/24〜1/7
+   - 1/11, 1/16
+   - 2月全日程
+   - 3月全日程
+───────────────────────────────────────────── */
+function isHolidayDate(date) {
+  const d  = new Date(date);
+  const dw = d.getDay();   // 0=Sun
+  const mo = d.getMonth() + 1; // 1-12
+  const dy = d.getDate();
+
+  // 日曜
+  if (dw === 0) return true;
+
+  // 4/28〜5/6
+  if (mo === 4 && dy >= 28) return true;
+  if (mo === 5 && dy <= 6)  return true;
+
+  // 8/2〜9/17
+  if (mo === 8 && dy >= 2)  return true;
+  if (mo === 9 && dy <= 17) return true;
+
+  // 11/3
+  if (mo === 11 && dy === 3) return true;
+
+  // 12/24〜1/7
+  if (mo === 12 && dy >= 24) return true;
+  if (mo === 1  && dy <= 7)  return true;
+
+  // 1/11, 1/16
+  if (mo === 1 && (dy === 11 || dy === 16)) return true;
+
+  // 2月・3月全日程
+  if (mo === 2 || mo === 3) return true;
+
+  return false;
+}
+
+// todayKey で今日が休日かどうか
+function isTodayHoliday() {
+  return isHolidayDate(new Date());
+}
+
+/* ─────────────────────────────────────────────
+   CANCEL CLASS  (休講設定)
+   Storage key: campus_cancel  { "YYYY-MM-DD:P": { note } }
+───────────────────────────────────────────── */
+const CANCEL_KEY = 'campus_cancel';
+
+function getCancels() {
+  try { return JSON.parse(localStorage.getItem(CANCEL_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveCancels(obj) { localStorage.setItem(CANCEL_KEY, JSON.stringify(obj)); }
+
+function cancelKey(date, period) { return `${date}:${period}`; }
+
+function isCancelled(date, period) {
+  return !!getCancels()[cancelKey(date, period)];
+}
+
+// 今日の日付文字列 YYYY-MM-DD
+function todayStr() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+
+function openCancelClassModal() {
+  document.getElementById('cc-date').value = todayStr();
+  document.getElementById('cc-period').value = '';
+  document.getElementById('cc-note').value = '';
+  document.getElementById('cc-err').textContent = '';
+  renderCancelList();
+  document.getElementById('cancel-class-overlay').classList.add('open');
+}
+function closeCancelClassModal() {
+  document.getElementById('cancel-class-overlay').classList.remove('open');
+}
+
+function addCancelClass() {
+  const date   = document.getElementById('cc-date').value;
+  const period = document.getElementById('cc-period').value;
+  const note   = document.getElementById('cc-note').value.trim();
+  const err    = document.getElementById('cc-err');
+  err.textContent = '';
+  if (!date)   { err.textContent = '日付を選択してください'; return; }
+  if (!period) { err.textContent = '時限を選択してください'; return; }
+  const cancels = getCancels();
+  cancels[cancelKey(date, period)] = { note };
+  saveCancels(cancels);
+  renderCancelList();
+  renderTimetable();
+  showToast(`🚫 ${date} ${period}限を休講に設定しました`);
+}
+
+function removeCancelClass(key) {
+  const cancels = getCancels();
+  delete cancels[key];
+  saveCancels(cancels);
+  renderCancelList();
+  renderTimetable();
+}
+
+function renderCancelList() {
+  const wrap = document.getElementById('cc-list');
+  const cancels = getCancels();
+  const keys = Object.keys(cancels).sort();
+  if (!keys.length) { wrap.innerHTML = '<div style="font-size:0.8125rem;color:var(--text-muted);text-align:center;padding:0.5rem">設定なし</div>'; return; }
+  wrap.innerHTML = '';
+  keys.forEach(k => {
+    const [date, period] = k.split(':');
+    const note = cancels[k].note;
+    const div = document.createElement('div');
+    div.className = 'cc-list-item';
+    div.innerHTML = `<div class="cc-info">${date} ${period}限${note ? ' — ' + esc(note) : ''}</div>
+      <button onclick="removeCancelClass('${k}')">✕</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   ASSIGNMENTS  (課題管理)
+   Storage key: campus_assignments  [ { id, course, title, due, done } ]
+───────────────────────────────────────────── */
+const ASSIGN_KEY = 'campus_assignments';
+
+function getAssignments() {
+  try { return JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveAssignments(arr) { localStorage.setItem(ASSIGN_KEY, JSON.stringify(arr)); }
+
+function openAssignmentModal() {
+  // populate course dropdown
+  const sel = document.getElementById('as-course');
+  sel.innerHTML = '';
+  courses.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  document.getElementById('as-title').value = '';
+  document.getElementById('as-due').value   = '';
+  document.getElementById('as-err').textContent = '';
+  document.getElementById('assignment-overlay').classList.add('open');
+}
+function closeAssignmentModal() {
+  document.getElementById('assignment-overlay').classList.remove('open');
+}
+
+function addAssignment() {
+  const course = document.getElementById('as-course').value;
+  const title  = document.getElementById('as-title').value.trim();
+  const due    = document.getElementById('as-due').value;
+  const err    = document.getElementById('as-err');
+  err.textContent = '';
+  if (!course) { err.textContent = '講義を選択してください'; return; }
+  if (!title)  { err.textContent = '課題名を入力してください'; return; }
+  if (!due)    { err.textContent = '期限を入力してください'; return; }
+  const list = getAssignments();
+  list.push({ id: Date.now(), course, title, due, done: false });
+  saveAssignments(list);
+  renderAssignments();
+  closeAssignmentModal();
+  showToast('📝 課題を追加しました');
+}
+
+function checkAssignment(id) {
+  const list = getAssignments();
+  const item = list.find(a => a.id === id);
+  if (!item) return;
+  item.done = true;
+  saveAssignments(list);
+  renderAssignments();
+}
+
+function restoreAssignment(id) {
+  const list = getAssignments();
+  const item = list.find(a => a.id === id);
+  if (!item) return;
+  item.done = false;
+  saveAssignments(list);
+  renderAssignments();
+  closeDoneAssignModal();
+}
+
+function renderAssignments() {
+  const wrap = document.getElementById('assignments-wrap');
+  const list = document.getElementById('assignments-list');
+  const all  = getAssignments();
+  const active = all.filter(a => !a.done);
+
+  // Show/hide done button
+  let doneBtn = document.getElementById('btn-show-done');
+  if (!doneBtn) {
+    doneBtn = document.createElement('button');
+    doneBtn.id = 'btn-show-done';
+    doneBtn.textContent = '✅ 提出済みを確認';
+    doneBtn.onclick = openDoneAssignModal;
+    wrap.appendChild(doneBtn);
+  }
+  const doneCount = all.filter(a => a.done).length;
+  doneBtn.style.display = doneCount > 0 ? 'block' : 'none';
+  doneBtn.textContent = `✅ 提出済みを確認 (${doneCount}件)`;
+
+  if (!active.length) {
+    list.innerHTML = '<div class="assign-empty">📭 未提出の課題はありません</div>';
+    // still show section if there are done items
+    wrap.style.display = (all.length > 0) ? 'block' : 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  list.innerHTML = '';
+  const now = Date.now();
+  active.sort((a,b) => new Date(a.due) - new Date(b.due));
+  active.forEach(a => {
+    const dueMs  = new Date(a.due).getTime();
+    const diff   = dueMs - now;
+    const overdue = diff < 0;
+    const near    = !overdue && diff < 1000*60*60*24*2; // 2日以内
+    const dueStr  = new Date(a.due).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    const item = document.createElement('div');
+    item.className = 'assign-item' + (overdue ? ' overdue' : '');
+    item.innerHTML = `
+      <div class="assign-dot"></div>
+      <div class="assign-body">
+        <div class="assign-course">${esc(a.course)}</div>
+        <div class="assign-title">${esc(a.title)}</div>
+        <div class="assign-due ${overdue?'over':near?'near':''}">${overdue?'⚠️ 期限超過: ':'期限: '}${dueStr}</div>
+      </div>
+      <button class="assign-check" title="提出済みにする" onclick="checkAssignment(${a.id})">✓</button>`;
+    list.appendChild(item);
+  });
+}
+
+function openDoneAssignModal() {
+  const all  = getAssignments();
+  const done = all.filter(a => a.done);
+  const wrap = document.getElementById('done-assign-list');
+  wrap.innerHTML = '';
+  if (!done.length) { wrap.innerHTML = '<div class="assign-empty">提出済みの課題はありません</div>'; }
+  done.forEach(a => {
+    const dueStr = new Date(a.due).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    const div = document.createElement('div');
+    div.className = 'done-item';
+    div.innerHTML = `<div class="done-item-course">${esc(a.course)}</div>
+      <div class="done-item-title">${esc(a.title)}</div>
+      <div style="font-size:0.6875rem;color:var(--text-muted)">期限: ${dueStr}</div>
+      <button class="done-restore" onclick="restoreAssignment(${a.id})">未提出に戻す</button>`;
+    wrap.appendChild(div);
+  });
+  document.getElementById('done-assign-overlay').classList.add('open');
+}
+function closeDoneAssignModal() {
+  document.getElementById('done-assign-overlay').classList.remove('open');
+}
+
+/* ─────────────────────────────────────────────
+   COURSE OVERRIDE  (講義切替・非表示)
+   Storage key: campus_course_override_<userId>
+   { "day:period": { type:'switch'|'hide', courseName } }
+───────────────────────────────────────────── */
+function overrideKey() {
+  const id = currentUserId() || '_guest';
+  return `campus_co_${id}`;
+}
+function getOverrides() {
+  try { return JSON.parse(localStorage.getItem(overrideKey()) || '{}'); }
+  catch { return {}; }
+}
+function saveOverrides(obj) { localStorage.setItem(overrideKey(), JSON.stringify(obj)); }
+
+// 特定の day:period に対して表示する講義を解決する
+function resolveDisplayCourse(day, period, candidates) {
+  if (!candidates.length) return null;
+  const ov = getOverrides()[`${day}:${period}`];
+  if (ov) {
+    if (ov.type === 'hide') return null;
+    if (ov.type === 'switch') {
+      const found = candidates.find(c => c.name === ov.courseName);
+      if (found) return found;
+    }
+  }
+  return candidates[0]; // デフォルト: 最初のもの
+}
+
+let _csSwitchContext = null; // { day, period, candidates }
+
+function openCourseSwitchModal(day, period, candidates) {
+  _csSwitchContext = { day, period, candidates };
+  document.getElementById('cs-title').textContent =
+    `${DAY_JA[day]}曜 ${period}限 — 講義の設定`;
+  const sel = document.getElementById('cs-select');
+  sel.innerHTML = '';
+  candidates.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  // 現在の選択を反映
+  const ov = getOverrides()[`${day}:${period}`];
+  if (ov && ov.type === 'switch') sel.value = ov.courseName;
+  document.getElementById('course-switch-overlay').classList.add('open');
+}
+function closeCourseSwitch() {
+  document.getElementById('course-switch-overlay').classList.remove('open');
+  _csSwitchContext = null;
+}
+function applyCourseSwitchChange() {
+  if (!_csSwitchContext) return;
+  const { day, period } = _csSwitchContext;
+  const name = document.getElementById('cs-select').value;
+  const ov = getOverrides();
+  ov[`${day}:${period}`] = { type:'switch', courseName: name };
+  saveOverrides(ov);
+  renderTimetable();
+  closeCourseSwitch();
+  showToast('📅 表示する講義を変更しました');
+}
+function applyCourseDelete() {
+  if (!_csSwitchContext) return;
+  const { day, period } = _csSwitchContext;
+  const ov = getOverrides();
+  ov[`${day}:${period}`] = { type:'hide' };
+  saveOverrides(ov);
+  renderTimetable();
+  closeCourseSwitch();
+  showToast('🙈 この時限を非表示にしました');
 }
 
 /* ─────────────────────────────────────────────
@@ -2164,6 +2721,7 @@ function renderAll() {
 
   renderTimetable();
   renderCourseList();
+  renderAssignments();
 
   document.getElementById('import-panel').style.display   = 'none';
   document.getElementById('timetable-wrap').style.display = 'block';
@@ -2287,13 +2845,9 @@ function renderWeek(tbl, noToday, today) {
       const td = document.createElement('td');
       td.className = 'col-day' + (d === today ? ' today-col' : '');
       const cs = grid[d][p];
-      if (cs.length > 1) {
-        const wrap = document.createElement('div');
-        wrap.className = 'cell-multi';
-        cs.forEach(c => wrap.appendChild(makeCard(c, isNow && d === today)));
-        td.appendChild(wrap);
-      } else if (cs.length === 1) {
-        td.appendChild(makeCard(cs[0], isNow && d === today));
+      const resolved = resolveDisplayCourse(d, p, cs);
+      if (resolved) {
+        td.appendChild(makeCard(resolved, isNow && d === today, d, p, cs));
       }
       tr.appendChild(td);
     });
@@ -2312,8 +2866,13 @@ function renderDay(tbl, noToday, today) {
   if (!today || !todayCourses.length) {
     tbl.style.display = 'none';
     noToday.style.display = 'block';
-    document.getElementById('no-today-day').textContent =
-      today ? DAY_JA[today] + '曜日' : '本日（土日）';
+    let msg;
+    if (!today) {
+      msg = isHolidayDate(new Date()) ? '休日' : '土日・祝日';
+    } else {
+      msg = DAY_JA[today] + '曜日';
+    }
+    document.getElementById('no-today-day').textContent = msg;
     document.getElementById('next-banner').style.display = 'none';
     return;
   }
@@ -2373,13 +2932,9 @@ function renderDay(tbl, noToday, today) {
 
     const td1 = document.createElement('td');
     td1.className = 'col-day';
-    if (cs.length > 1) {
-      const wrap = document.createElement('div');
-      wrap.className = 'cell-multi';
-      cs.forEach(c => wrap.appendChild(makeCard(c, isNow)));
-      td1.appendChild(wrap);
-    } else if (cs.length === 1) {
-      td1.appendChild(makeCard(cs[0], isNow));
+    const resolved = resolveDisplayCourse(today, p, cs);
+    if (resolved) {
+      td1.appendChild(makeCard(resolved, isNow, today, p, cs));
     }
     tr.appendChild(td1);
     tbody.appendChild(tr);
@@ -2407,19 +2962,34 @@ function rerenderPeriodHighlights() {
   });
 }
 
-function makeCard(c, isActive) {
+function makeCard(c, isActive, day, period, allCandidates) {
   const key  = c.code||c.name;
   const ci   = colorMap[key] !== undefined ? colorMap[key] : 0;
   const card = document.createElement('div');
-  card.className = `course-card cc-${ci}${isActive?' card-active':''}`;
+
+  // 今日の日付で休講チェック
+  const dateStr = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  })();
+  const cancelled = day && period && isCancelled(dateStr, String(period));
+
+  card.className = `course-card cc-${ci}${isActive?' card-active':''}${cancelled?' is-cancelled':''}`;
   const loc = buildLoc(c);
   card.innerHTML = `
+    ${cancelled ? '<span class="card-cancelled">休講</span>' : ''}
     <div class="cn">${esc(c.name)}</div>
     <div class="cm">
       <span class="cm-teacher">${esc(c.teacher||'—')}</span>
       ${loc ? `<span class="cm-room">📍${esc(loc)}</span>` : ''}
     </div>`;
-  card.onclick = () => openModal(c);
+
+  // クリック処理: 複数候補がある場合は切替モーダル、単独の場合は通常モーダル
+  if (day && period && allCandidates && allCandidates.length > 1) {
+    card.onclick = () => openCourseSwitchModal(day, period, allCandidates);
+  } else {
+    card.onclick = () => openModal(c);
+  }
   return card;
 }
 
@@ -2680,6 +3250,11 @@ function onLoginSuccess(id) {
   document.getElementById('hmenu-logout').style.display   = 'flex';
   document.getElementById('hmenu-div-danger').style.display = 'block';
   document.getElementById('hmenu-delete').style.display   = 'flex';
+  // 管理者専用メニュー
+  const adminItems = document.querySelectorAll('.hmenu-admin-only');
+  adminItems.forEach(el => {
+    el.style.display = (id === ADMIN_ID) ? (el.tagName === 'BUTTON' ? 'flex' : 'block') : 'none';
+  });
   // データ読み込み開始
   loadTimeXlsx();
 }
@@ -2697,6 +3272,7 @@ function doLogout() {
   document.getElementById('hmenu-logout').style.display    = 'none';
   document.getElementById('hmenu-div-danger').style.display= 'none';
   document.getElementById('hmenu-delete').style.display    = 'none';
+  document.querySelectorAll('.hmenu-admin-only').forEach(el => el.style.display = 'none');
   // コンテンツ非表示
   document.getElementById('btn-view').style.display   = 'none';
   document.getElementById('btn-reload2').style.display= 'none';
@@ -2725,7 +3301,17 @@ function initAuth() {
   document.getElementById('login-screen').classList.add('active');
 }
 
-document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeFloorMap(); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeFloorMap();
+    closeCancelClassModal();
+    closeAssignmentModal();
+    closeDoneAssignModal();
+    closeCourseSwitch();
+    closeHamburger();
+  }
+});
 window.addEventListener('DOMContentLoaded', () => { initAuth(); _initTestMode(); });
 
 // リサイズ時の再描画（localStorage override がなければデバイスデフォルトに追従）
