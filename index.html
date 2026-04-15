@@ -2154,18 +2154,33 @@ function renderCancelList() {
 
 /* ─────────────────────────────────────────────
    ASSIGNMENTS  (課題管理)
-   Storage key: campus_assign_<userId>  [ { id, course, title, due, done } ]
+   課題リスト (追加・削除) → 全員共通: campus_assign_global
+   完了状態 → ユーザー個別: campus_assign_done_<userId>  { [assignId]: true }
 ───────────────────────────────────────────── */
-function assignKey() {
-  const id = currentUserId() || '_guest';
-  return `campus_assign_${id}`;
-}
+const ASSIGN_GLOBAL_KEY = 'campus_assign_global';
 
 function getAssignments() {
-  try { return JSON.parse(localStorage.getItem(assignKey()) || '[]'); }
+  // グローバルリストを取得（done フィールドは無視、個人状態で上書き）
+  try { return JSON.parse(localStorage.getItem(ASSIGN_GLOBAL_KEY) || '[]'); }
   catch { return []; }
 }
-function saveAssignments(arr) { localStorage.setItem(assignKey(), JSON.stringify(arr)); }
+function saveAssignments(arr) {
+  localStorage.setItem(ASSIGN_GLOBAL_KEY, JSON.stringify(arr));
+}
+
+function doneKey() {
+  const id = currentUserId() || '_guest';
+  return `campus_assign_done_${id}`;
+}
+function getDoneSet() {
+  try { return JSON.parse(localStorage.getItem(doneKey()) || '{}'); }
+  catch { return {}; }
+}
+function saveDoneSet(obj) { localStorage.setItem(doneKey(), JSON.stringify(obj)); }
+
+function isAssignDone(assignId) {
+  return !!getDoneSet()[assignId];
+}
 
 function openAssignmentModal() {
   // populate course dropdown
@@ -2194,29 +2209,28 @@ function addAssignment() {
   if (!course) { err.textContent = '講義を選択してください'; return; }
   if (!title)  { err.textContent = '課題名を入力してください'; return; }
   if (!due)    { err.textContent = '期限を入力してください'; return; }
+  // グローバルリストに追加（done フィールドは持たない）
   const list = getAssignments();
-  list.push({ id: Date.now(), course, title, due, done: false });
+  list.push({ id: Date.now(), course, title, due });
   saveAssignments(list);
   renderAssignments();
   closeAssignmentModal();
-  showToast('📝 課題を追加しました');
+  showToast('📝 課題を追加しました（全員に反映）');
 }
 
-function checkAssignment(id) {
-  const list = getAssignments();
-  const item = list.find(a => a.id === id);
-  if (!item) return;
-  item.done = true;
-  saveAssignments(list);
+function checkAssignment(assignId) {
+  // 個人の完了セットに追加
+  const done = getDoneSet();
+  done[assignId] = true;
+  saveDoneSet(done);
   renderAssignments();
 }
 
-function restoreAssignment(id) {
-  const list = getAssignments();
-  const item = list.find(a => a.id === id);
-  if (!item) return;
-  item.done = false;
-  saveAssignments(list);
+function restoreAssignment(assignId) {
+  // 個人の完了セットから削除
+  const done = getDoneSet();
+  delete done[assignId];
+  saveDoneSet(done);
   renderAssignments();
   closeDoneAssignModal();
 }
@@ -2224,26 +2238,26 @@ function restoreAssignment(id) {
 function renderAssignments() {
   const wrap = document.getElementById('assignments-wrap');
   const list = document.getElementById('assignments-list');
-  const all  = getAssignments();
-  const active = all.filter(a => !a.done);
+  const all  = getAssignments();        // グローバル課題リスト
+  const done = getDoneSet();            // 個人完了セット
 
-  // Show/hide done button
+  const active = all.filter(a => !done[a.id]);
+  const doneList = all.filter(a => !!done[a.id]);
+
+  // 提出済みボタン
   let doneBtn = document.getElementById('btn-show-done');
   if (!doneBtn) {
     doneBtn = document.createElement('button');
     doneBtn.id = 'btn-show-done';
-    doneBtn.textContent = '✅ 提出済みを確認';
     doneBtn.onclick = openDoneAssignModal;
     wrap.appendChild(doneBtn);
   }
-  const doneCount = all.filter(a => a.done).length;
-  doneBtn.style.display = doneCount > 0 ? 'block' : 'none';
-  doneBtn.textContent = `✅ 提出済みを確認 (${doneCount}件)`;
+  doneBtn.style.display = doneList.length > 0 ? 'block' : 'none';
+  doneBtn.textContent = `✅ 提出済みを確認 (${doneList.length}件)`;
 
   if (!active.length) {
     list.innerHTML = '<div class="assign-empty">📭 未提出の課題はありません</div>';
-    // still show section if there are done items
-    wrap.style.display = (all.length > 0) ? 'block' : 'none';
+    wrap.style.display = all.length > 0 ? 'block' : 'none';
     return;
   }
 
@@ -2255,7 +2269,7 @@ function renderAssignments() {
     const dueMs  = new Date(a.due).getTime();
     const diff   = dueMs - now;
     const overdue = diff < 0;
-    const near    = !overdue && diff < 1000*60*60*24*2; // 2日以内
+    const near    = !overdue && diff < 1000*60*60*24*2;
     const dueStr  = new Date(a.due).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
 
     const item = document.createElement('div');
@@ -2274,11 +2288,14 @@ function renderAssignments() {
 
 function openDoneAssignModal() {
   const all  = getAssignments();
-  const done = all.filter(a => a.done);
+  const done = getDoneSet();
+  const doneList = all.filter(a => !!done[a.id]);
   const wrap = document.getElementById('done-assign-list');
   wrap.innerHTML = '';
-  if (!done.length) { wrap.innerHTML = '<div class="assign-empty">提出済みの課題はありません</div>'; }
-  done.forEach(a => {
+  if (!doneList.length) {
+    wrap.innerHTML = '<div class="assign-empty">提出済みの課題はありません</div>';
+  }
+  doneList.forEach(a => {
     const dueStr = new Date(a.due).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
     const div = document.createElement('div');
     div.className = 'done-item';
@@ -3575,9 +3592,10 @@ async function loginSubmit() {
   }
 
   const users = getUsers();
-  const hash  = await sha256(id + ':' + pw); // id を salt 代わりに使用
+  const hash  = await sha256(id + ':' + pw);
 
   if (loginMode === 'register') {
+    // 新規登録モード
     if (users[id]) {
       err.textContent = 'この学籍番号は既に登録されています';
       return;
@@ -3587,12 +3605,16 @@ async function loginSubmit() {
     saveSession(id);
     onLoginSuccess(id);
   } else {
-    const user = users[id];
-    if (!user) {
-      err.textContent = '学籍番号が見つかりません。新規登録してください';
+    // ログインモード: 未登録なら自動登録（初回ログイン）
+    if (!users[id]) {
+      users[id] = { hash };
+      saveUsers(users);
+      saveSession(id);
+      onLoginSuccess(id);
       return;
     }
-    if (user.hash !== hash) {
+    // 既存アカウント: パスワード照合
+    if (users[id].hash !== hash) {
       err.textContent = 'パスワードが正しくありません';
       return;
     }
