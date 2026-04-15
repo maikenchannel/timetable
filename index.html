@@ -2133,15 +2133,18 @@ function renderCancelList() {
 
 /* ─────────────────────────────────────────────
    ASSIGNMENTS  (課題管理)
-   Storage key: campus_assignments  [ { id, course, title, due, done } ]
+   Storage key: campus_assign_<userId>  [ { id, course, title, due, done } ]
 ───────────────────────────────────────────── */
-const ASSIGN_KEY = 'campus_assignments';
+function assignKey() {
+  const id = currentUserId() || '_guest';
+  return `campus_assign_${id}`;
+}
 
 function getAssignments() {
-  try { return JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]'); }
+  try { return JSON.parse(localStorage.getItem(assignKey()) || '[]'); }
   catch { return []; }
 }
-function saveAssignments(arr) { localStorage.setItem(ASSIGN_KEY, JSON.stringify(arr)); }
+function saveAssignments(arr) { localStorage.setItem(assignKey(), JSON.stringify(arr)); }
 
 function openAssignmentModal() {
   // populate course dropdown
