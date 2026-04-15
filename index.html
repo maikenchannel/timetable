@@ -2053,7 +2053,7 @@ function currentUserId() {
   const s = getSession();
   return s ? s.id : null;
 }
-const ADMIN_ID = '26X2004';
+const ADMIN_ID = null;
 function isAdmin() { return currentUserId() === ADMIN_ID; }
 
 /* ─────────────────────────────────────────────
@@ -3033,8 +3033,8 @@ function updateBanner() {
 
   } else {
     bn.classList.add('mode-off');
-    pill.textContent      = '■';
-    label.textContent     = '本日終了';
+    pill.textContent      = '本日終了';
+    label.textContent     = 'お疲れさまでした';
     courseEl.textContent  = '';
     locInline.textContent = '';
     timeEl.textContent    = '';
